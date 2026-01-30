@@ -25,13 +25,10 @@ See README.md for full documentation.
 """
 
 from da.agent import data_agent, data_agent_knowledge
-from da.config import DataAgentConfig, get_config
 
 __all__ = [
     "data_agent",
     "data_agent_knowledge",
-    "DataAgentConfig",
-    "get_config",
 ]
 
 __version__ = "1.0.0"

@@ -17,10 +17,9 @@ Key behaviors:
 - Learns from corrections via LearningMachine
 - Provides insights, not just raw data
 - Offers to save successful queries for future use
-
-Usage:
-    python -m da
 """
+
+from os import getenv
 
 from agno.agent import Agent
 from agno.knowledge import Knowledge
@@ -38,7 +37,6 @@ from agno.tools.reasoning import ReasoningTools
 from agno.tools.sql import SQLTools
 from agno.vectordb.pgvector import PgVector, SearchType
 
-from da.config import get_config, get_db_config, get_exa_mcp_url
 from da.context.business_rules import BUSINESS_CONTEXT
 from da.context.semantic_model import SEMANTIC_MODEL_STR
 from da.tools import (
@@ -48,32 +46,24 @@ from da.tools import (
     set_engine,
     set_knowledge,
 )
-from db import get_postgres_db
-
-# ============================================================================
-# Configuration
-# ============================================================================
-
-config = get_config()
-db_config = get_db_config()
-db_url = db_config.url
+from db import db_url, get_postgres_db
 
 # ============================================================================
 # Database & Knowledge Base
 # ============================================================================
 
-agent_db = get_postgres_db(contents_table=config.contents_table)
+agent_db = get_postgres_db(contents_table="data_agent_contents")
 
 data_agent_knowledge = Knowledge(
     name="Data Agent Knowledge",
     vector_db=PgVector(
         db_url=db_url,
-        table_name=config.knowledge_table,
+        table_name="data_agent_knowledge",
         search_type=SearchType.hybrid,
         embedder=OpenAIEmbedder(id="text-embedding-3-small"),
     ),
     contents_db=agent_db,
-    max_results=config.max_results,
+    max_results=10,
 )
 
 # Initialize tool references
@@ -114,7 +104,7 @@ These are CRITICAL for correct queries:
 
 ### 4. GENERATE SQL
 Follow these rules:
-- Use LIMIT {config.default_limit} by default
+- Use LIMIT 50 by default
 - Never use SELECT * - specify columns explicitly
 - Always include ORDER BY for top-N queries
 - Never run destructive queries (DROP, DELETE, UPDATE, INSERT)
@@ -166,7 +156,7 @@ When something goes wrong:
 |------|---------|
 | Search first | Always check knowledge base before writing SQL |
 | Show SQL | Always display the query you're using |
-| Limit results | Use LIMIT {config.default_limit} unless user specifies |
+| Limit results | Use LIMIT 50 unless user specifies |
 | No SELECT * | Specify columns explicitly |
 | Order results | Include ORDER BY for top-N queries |
 | No destructive | Never DROP, DELETE, UPDATE, or INSERT |
@@ -187,23 +177,21 @@ tools: list = [
 ]
 
 # Add MCP tools for external knowledge (Layer 4) if configured
-if config.enable_mcp:
-    exa_url = get_exa_mcp_url()
-    if exa_url:
-        tools.append(MCPTools(url=exa_url))
+exa_api_key = getenv("EXA_API_KEY")
+if exa_api_key:
+    exa_url = f"https://mcp.exa.ai/mcp?exaApiKey={exa_api_key}&tools=web_search_exa,company_research_exa"
+    tools.append(MCPTools(url=exa_url))
 
 # ============================================================================
 # Learning Configuration (Layer 5)
 # ============================================================================
 
-learning = None
-if config.enable_learning:
-    learning = LearningMachine(
-        knowledge=data_agent_knowledge,
-        user_profile=UserProfileConfig(mode=LearningMode.AGENTIC),
-        user_memory=UserMemoryConfig(mode=LearningMode.AGENTIC),
-        learned_knowledge=LearnedKnowledgeConfig(mode=LearningMode.AGENTIC),
-    )
+learning = LearningMachine(
+    knowledge=data_agent_knowledge,
+    user_profile=UserProfileConfig(mode=LearningMode.AGENTIC),
+    user_memory=UserMemoryConfig(mode=LearningMode.AGENTIC),
+    learned_knowledge=LearnedKnowledgeConfig(mode=LearningMode.AGENTIC),
+)
 
 # ============================================================================
 # Create Agent
@@ -212,7 +200,7 @@ if config.enable_learning:
 data_agent = Agent(
     id="data-agent",
     name="Data Agent",
-    model=OpenAIResponses(id=config.model, temperature=config.temperature),
+    model=OpenAIResponses(id="gpt-5.2"),
     db=agent_db,
     knowledge=data_agent_knowledge,
     system_message=SYSTEM_MESSAGE,
@@ -223,10 +211,10 @@ data_agent = Agent(
     add_datetime_to_context=True,
     add_history_to_context=True,
     read_chat_history=True,
-    num_history_runs=config.num_history_runs,
+    num_history_runs=5,
     read_tool_call_history=True,
     # Knowledge settings (Layer 1-3)
-    search_knowledge=config.search_knowledge,
+    search_knowledge=True,
     # Output
     markdown=True,
 )

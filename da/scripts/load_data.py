@@ -33,9 +33,9 @@ FILES_TO_TABLES = {
 def get_db_url() -> str:
     """Get database URL from configuration."""
     try:
-        from da.config import get_db_config
+        from db import db_url
 
-        return get_db_config().url
+        return db_url
     except ImportError:
         # Fallback for standalone execution
         return "postgresql+psycopg://ai:ai@localhost:5432/ai"

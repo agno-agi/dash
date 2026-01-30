@@ -5,7 +5,7 @@ description = "A self-learning data agent that provides insights, not just query
 requires-python = ">=3.12,<4"
 readme = "README.md"
 license-files = ["LICENSE"]
-authors = [{ name = "Your Name", email = "your@email.com" }]
+authors = [{ name = "Agno", email = "hello@agno.com" }]
 
 dependencies = [
   # Agno Framework
@@ -24,8 +24,6 @@ dependencies = [
   # Data loading
   "pandas",
   "requests",
-  # Configuration
-  "pydantic-settings",
   # Tracing
   "opentelemetry-api",
   "opentelemetry-sdk",

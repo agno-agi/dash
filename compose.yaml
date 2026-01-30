@@ -1,7 +1,7 @@
 services:
-  agentos-db:
+  data-agent-db:
     image: agnohq/pgvector:18
-    container_name: agentos-db
+    container_name: data-agent-db
     restart: unless-stopped
     ports:
       - "5432:5432"
@@ -12,26 +12,26 @@ services:
       POSTGRES_PASSWORD: ${DB_PASS:-ai}
       POSTGRES_DB: ${DB_DATABASE:-ai}
     networks:
-      - agentos
+      - data-agent
 
-  agentos-api:
-    container_name: agentos-api
+  data-agent-api:
+    container_name: data-agent-api
     build:
       context: .
       dockerfile: Dockerfile
-    image: ${IMAGE_NAME:-agno-agentos}:${IMAGE_TAG:-latest}
+    image: ${IMAGE_NAME:-data-agent}:${IMAGE_TAG:-latest}
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
       - .:/app
-      - agentos-data:/data
+      - data-agent-data:/data
     environment:
       DATA_DIR: /data
       RUNTIME_ENV: dev
       AGNO_DEBUG: "True"
-      DB_HOST: agentos-db
+      DB_HOST: data-agent-db
       DB_PORT: 5432
       DB_USER: ${DB_USER:-ai}
       DB_PASS: ${DB_PASS:-ai}
@@ -41,15 +41,15 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       EXA_API_KEY: ${EXA_API_KEY:-}
     depends_on:
-      - agentos-db
+      - data-agent-db
     networks:
-      - agentos
+      - data-agent
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
 networks:
-  agentos:
+  data-agent:
 
 volumes:
   pgdata:
-  agentos-data:
+  data-agent-data:

@@ -54,7 +54,7 @@ fi
 
 echo -e "${BOLD}Initializing project...${NC}"
 echo ""
-railway init -n "agno"
+railway init -n "data-agent"
 
 echo ""
 echo -e "${BOLD}Deploying PgVector database...${NC}"
@@ -68,7 +68,7 @@ sleep 10
 echo ""
 echo -e "${BOLD}Creating application service...${NC}"
 echo ""
-railway add --service agent_os \
+railway add --service data-agent \
     --variables 'DB_USER=${{pgvector.PGUSER}}' \
     --variables 'DB_PASS=${{pgvector.PGPASSWORD}}' \
     --variables 'DB_HOST=${{pgvector.PGHOST}}' \
@@ -83,14 +83,14 @@ railway add --service agent_os \
 echo ""
 echo -e "${BOLD}Deploying application...${NC}"
 echo ""
-railway up --service agent_os -d
+railway up --service data-agent -d
 
 echo ""
 echo -e "${BOLD}Creating domain...${NC}"
 echo ""
-railway domain --service agent_os
+railway domain --service data-agent
 
 echo ""
 echo -e "${BOLD}Done.${NC} Domain may take ~5 minutes."
-echo -e "${DIM}Logs: railway logs --service agent_os${NC}"
+echo -e "${DIM}Logs: railway logs --service data-agent${NC}"
 echo ""

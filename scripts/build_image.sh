@@ -17,7 +17,7 @@ set -e
 CURR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OS_ROOT="$(dirname "${CURR_DIR}")"
 DOCKER_FILE="Dockerfile"
-IMAGE_NAME="agentos-railway"
+IMAGE_NAME="data-agent"
 IMAGE_TAG="latest"
 
 # Colors
