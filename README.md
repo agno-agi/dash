@@ -2,136 +2,156 @@
 
 A self-learning data agent inspired by [OpenAI's in-house data agent](https://openai.com/index/inside-our-in-house-data-agent/).
 
-## The 6 Layers of Context
+## Why Text-to-SQL Fails
 
-| Layer | Purpose | Implementation |
-|-------|---------|----------------|
-| **1. Table Metadata** | Schema, columns, types | `knowledge/tables/*.json` |
-| **2. Human Annotations** | Business rules, gotchas | `knowledge/business/*.json` |
-| **3. Query Patterns** | Validated SQL | `knowledge/queries/*.sql` |
-| **4. Institutional Knowledge** | External context | MCP (optional) |
-| **5. Memory** | Discovered patterns | Agno's `LearningMachine` |
-| **6. Runtime Context** | Live schema inspection | `introspect_schema` tool |
+Raw LLMs writing SQL hit a wall fast. They hallucinate column names, miss type quirks, and ignore the tribal knowledge that makes queries actually work. The problem isn't model capability, it's missing context.
 
-Plus **agentic memory** for user preferences.
+Dash solves this with **6 layers of grounded context** and a **self-learning knowledge loop**.
+
+## The 6 Layers
+
+| Layer | What It Provides | Source |
+|-------|------------------|--------|
+| **Table Metadata** | Schema, columns, relationships | `knowledge/tables/*.json` |
+| **Business Rules** | Metric definitions, gotchas | `knowledge/business/*.json` |
+| **Query Patterns** | Validated SQL that works | `knowledge/queries/*.sql` |
+| **Institutional Knowledge** | External docs, wikis | MCP (optional) |
+| **Memory** | Patterns discovered through errors | Agno's `LearningMachine` |
+| **Runtime Context** | Live schema when things change | `introspect_schema` tool |
+
+The agent retrieves relevant context at query time via hybrid search, then generates SQL grounded in patterns that already work.
+
+## Self-Improving Loop
+
+```
+User Question
+     ↓
+Retrieve Context (schemas, patterns, gotchas)
+     ↓
+Generate SQL (grounded in working examples)
+     ↓
+Execute & Analyze
+     ↓
+ ┌───┴───┐
+ ↓       ↓
+Success  Error
+ ↓       ↓
+Offer    Learn
+to save  from it
+```
+
+When a query fails, the agent introspects the schema, fixes the issue, and saves the learning. Next time, it won't make the same mistake. No model retraining—just better retrieval knowledge.
 
 ## Quick Start
 
 ```sh
-# Clone and configure
-git clone https://github.com/agno-agi/data-agent.git
-cd data-agent
+git clone https://github.com/agno-agi/data-agent.git && cd data-agent
 cp example.env .env  # Add OPENAI_API_KEY
 
 # Start
 docker compose up -d --build
-
-# Load sample F1 data
 docker exec -it data-agent-api python -m da.scripts.load_data
-# Load knowledge
 docker exec -it data-agent-api python -m da.scripts.load_knowledge
 ```
 
-- **API**: http://localhost:8000
-- **Docs**: http://localhost:8000/docs
-- **Control Plane**: [os.agno.com](https://os.agno.com) → Add OS → Local → `http://localhost:8000`
+| Endpoint | URL |
+|----------|-----|
+| API | http://localhost:8000 |
+| Docs | http://localhost:8000/docs |
+| Control Plane | [os.agno.com](https://os.agno.com) → Add OS → Local → `http://localhost:8000` |
 
-## Try It
-
+**Try it** (sample F1 dataset):
 ```
 Who won the most F1 World Championships?
 How many races has Lewis Hamilton won?
 Compare Ferrari vs Mercedes points 2015-2020
 ```
 
-## Deploy to Railway
+## Adding Knowledge
 
-```sh
-railway login
-./scripts/railway_up.sh
-```
-
-## Add Your Own Knowledge
-
-Knowledge files go in `knowledge/` with three subdirectories:
+The knowledge base stores what makes your data unique, the context an LLM can't infer from schema alone.
 
 ```
 knowledge/
-├── tables/      # Table metadata (JSON)
-├── queries/     # Validated SQL patterns (SQL)
-└── business/    # Business rules & metrics (JSON)
+├── tables/      # What each table contains
+├── queries/     # SQL patterns that work
+└── business/    # How your org talks about data
 ```
 
-### 1. Table Metadata (`knowledge/tables/*.json`)
+### Table Metadata
 
-Describe each table's purpose, columns, and data quirks:
+Describe tables beyond what's in the schema:
 
 ```json
 {
-  "table_name": "users",
-  "table_description": "User accounts",
-  "use_cases": ["User lookup", "Activity analysis"],
-  "data_quality_notes": ["Email stored lowercase", "created_at is UTC"]
+  "table_name": "orders",
+  "table_description": "Customer orders with line items denormalized",
+  "use_cases": ["Revenue reporting", "Customer analytics"],
+  "data_quality_notes": [
+    "created_at is UTC",
+    "status can be: pending, completed, refunded",
+    "amount is in cents, not dollars"
+  ]
 }
 ```
 
-### 2. Query Patterns (`knowledge/queries/*.sql`)
+### Query Patterns
 
-Add validated queries the agent can learn from. Use XML-style tags:
+Validated SQL the agent can learn from:
 
 ```sql
--- <query name>active_users_by_month</query name>
+-- <query name>monthly_revenue</query name>
 -- <query description>
--- Count active users per month.
--- Handles: timezone conversion, activity definition
+-- Monthly revenue calculation.
+-- Handles: cents to dollars, excludes refunds
 -- </query description>
 -- <query>
 SELECT
-    DATE_TRUNC('month', last_login) AS month,
-    COUNT(*) AS active_users
-FROM users
-WHERE last_login > NOW() - INTERVAL '30 days'
+    DATE_TRUNC('month', created_at) AS month,
+    SUM(amount) / 100.0 AS revenue_dollars
+FROM orders
+WHERE status = 'completed'
 GROUP BY 1
 ORDER BY 1 DESC
 -- </query>
 ```
 
-### 3. Business Rules (`knowledge/business/*.json`)
+### Business Rules
 
-Define metrics and document common gotchas:
+Map organizational language to data:
 
 ```json
 {
-  "metrics": [{"name": "Active User", "definition": "Login in last 30 days"}],
-  "common_gotchas": [{"issue": "Timezones", "solution": "All timestamps UTC"}]
+  "metrics": [
+    {"name": "MRR", "definition": "Sum of active subscription amounts, excluding trials"},
+    {"name": "Churn", "definition": "Subscriptions cancelled / total subscriptions at period start"}
+  ],
+  "common_gotchas": [
+    {"issue": "Revenue double-counting", "solution": "Use completed orders only, not pending"}
+  ]
 }
 ```
 
-### Load Knowledge
-
-After adding or updating files, load them into the vector database:
+### Load It
 
 ```sh
-# Docker
-docker exec -it data-agent-api python -m da.scripts.load_knowledge
-
-# Local
-python -m da.scripts.load_knowledge
-
-# Fresh start (drop and reload all)
-python -m da.scripts.load_knowledge --recreate
+python -m da.scripts.load_knowledge            # Upsert changes
+python -m da.scripts.load_knowledge --recreate # Fresh start
 ```
-
-Re-running without `--recreate` will upsert (update existing documents). Use `--recreate` to drop all existing knowledge and reload from scratch.
 
 ## Local Development
 
 ```sh
-./scripts/venv_setup.sh
-source .venv/bin/activate
-docker compose up -d data-agent-db  # PostgreSQL
+./scripts/venv_setup.sh && source .venv/bin/activate
+docker compose up -d data-agent-db
 python -m da.scripts.load_data
 python -m da  # CLI mode
+```
+
+## Deploy
+
+```sh
+railway login && ./scripts/railway_up.sh
 ```
 
 ## Environment Variables
@@ -139,11 +159,12 @@ python -m da  # CLI mode
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `OPENAI_API_KEY` | Yes | OpenAI API key |
-| `EXA_API_KEY` | No | Exa API for web research |
-| `DB_HOST/PORT/USER/PASS/DATABASE` | No | Database config (defaults to localhost) |
+| `EXA_API_KEY` | No | Web search for institutional knowledge |
+| `DB_*` | No | Database config (defaults to localhost) |
 
 ## Links
 
-- [OpenAI Data Agent Article](https://openai.com/index/how-openai-built-its-data-agent/)
+- [OpenAI's In-House Data Agent](https://openai.com/index/inside-our-in-house-data-agent/) — the inspiration
+- [Self-Improving SQL Agent](https://www.ashpreetbedi.com/articles/sql-agent) — deep dive on an earlier architecture
 - [Agno Docs](https://docs.agno.com)
 - [Discord](https://agno.com/discord)
