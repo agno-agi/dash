@@ -1,6 +1,6 @@
 chat:
   quick_prompts:
     data-agent:
-      - "Who won the most races in 2019?"
+      - "Tell me about yourself"
       - "Who won the most F1 World Championships?"
       - "How many races has Lewis Hamilton won?"
