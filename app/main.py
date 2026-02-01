@@ -1,8 +1,8 @@
 """
-Data Agent API
-==============
+Dash API
+========
 
-Production deployment entry point for the Data Agent.
+Production deployment entry point for Dash.
 
 Run:
     python -m app.main
@@ -13,18 +13,18 @@ from pathlib import Path
 
 from agno.os import AgentOS
 
-from dash.agent import data_agent, data_agent_knowledge
+from dash.agents import dash, dash_knowledge
 from db import get_postgres_db
 
 # ============================================================================
 # Create AgentOS
 # ============================================================================
 agent_os = AgentOS(
-    name="Data Agent",
+    name="Dash",
     tracing=True,
     db=get_postgres_db(),
-    agents=[data_agent],
-    knowledge=[data_agent_knowledge],
+    agents=[dash],
+    knowledge=[dash_knowledge],
     config=str(Path(__file__).parent / "config.yaml"),
 )
 

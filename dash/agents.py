@@ -1,8 +1,8 @@
 """
-Dash - A self-learning data agent
-================================
+Dash Agents
+===========
 
-Test: python -m dash.agent
+Test: python -m dash.agents
 """
 
 from os import getenv
@@ -35,39 +35,38 @@ from db import db_url, get_postgres_db
 agent_db = get_postgres_db()
 
 # KNOWLEDGE: Static, curated (table schemas, validated queries, business rules)
-data_agent_knowledge = Knowledge(
-    name="Data Agent Knowledge",
+dash_knowledge = Knowledge(
+    name="Dash Knowledge",
     vector_db=PgVector(
         db_url=db_url,
-        table_name="data_agent_knowledge",
+        table_name="dash_knowledge",
         search_type=SearchType.hybrid,
         embedder=OpenAIEmbedder(id="text-embedding-3-small"),
     ),
-    contents_db=get_postgres_db(contents_table="data_agent_knowledge_contents"),
+    contents_db=get_postgres_db(contents_table="dash_knowledge_contents"),
 )
 
 # LEARNINGS: Dynamic, discovered (error patterns, gotchas, user corrections)
-data_agent_learnings = Knowledge(
-    name="Data Agent Learnings",
+dash_learnings = Knowledge(
+    name="Dash Learnings",
     vector_db=PgVector(
         db_url=db_url,
-        table_name="data_agent_learnings",
+        table_name="dash_learnings",
         search_type=SearchType.hybrid,
         embedder=OpenAIEmbedder(id="text-embedding-3-small"),
     ),
-    contents_db=get_postgres_db(contents_table="data_agent_learnings_contents"),
+    contents_db=get_postgres_db(contents_table="dash_learnings_contents"),
 )
 
 # ============================================================================
 # Tools
 # ============================================================================
 
-save_validated_query = create_save_validated_query_tool(data_agent_knowledge)
+save_validated_query = create_save_validated_query_tool(dash_knowledge)
 introspect_schema = create_introspect_schema_tool(db_url)
 
-tools: list = [
+base_tools: list = [
     SQLTools(db_url=db_url),
-    ReasoningTools(add_instructions=True),
     save_validated_query,
     introspect_schema,
     MCPTools(url=f"https://mcp.exa.ai/mcp?exaApiKey={getenv('EXA_API_KEY', '')}&tools=web_search_exa"),
@@ -164,23 +163,22 @@ save_learning(
 # Create Agent
 # ============================================================================
 
-data_agent = Agent(
-    id="dash",
+dash = Agent(
     name="Dash",
     model=OpenAIResponses(id="gpt-5.2"),
     db=agent_db,
     instructions=INSTRUCTIONS,
     # Knowledge (static)
-    knowledge=data_agent_knowledge,
+    knowledge=dash_knowledge,
     search_knowledge=True,
     # Learning (provides search_learnings, save_learning, user profile, user memory)
     learning=LearningMachine(
-        knowledge=data_agent_learnings,
+        knowledge=dash_learnings,
         user_profile=UserProfileConfig(mode=LearningMode.AGENTIC),
         user_memory=UserMemoryConfig(mode=LearningMode.AGENTIC),
         learned_knowledge=LearnedKnowledgeConfig(mode=LearningMode.AGENTIC),
     ),
-    tools=tools,
+    tools=base_tools,
     # Context
     add_datetime_to_context=True,
     add_history_to_context=True,
@@ -189,5 +187,13 @@ data_agent = Agent(
     markdown=True,
 )
 
+# Reasoning variant - adds multi-step reasoning capabilities
+reasoning_dash = dash.deep_copy(
+    update={
+        "name": "Reasoning Dash",
+        "tools": base_tools + [ReasoningTools(add_instructions=True)],
+    }
+)
+
 if __name__ == "__main__":
-    data_agent.print_response("Who won the most races in 2019?", stream=True)
+    dash.print_response("Who won the most races in 2019?", stream=True)

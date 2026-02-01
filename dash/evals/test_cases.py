@@ -1,5 +1,5 @@
 """
-Test cases for evaluating the Data Agent.
+Test cases for evaluating Dash.
 
 Each test case includes:
 - question: The natural language question to ask
@@ -12,12 +12,12 @@ When golden_sql is provided, the evaluation will:
 2. Compare against actual query results from the agent's response
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
 class TestCase:
-    """A test case for evaluating the Data Agent."""
+    """A test case for evaluating Dash."""
 
     question: str
     expected_strings: list[str]

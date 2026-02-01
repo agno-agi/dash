@@ -91,6 +91,8 @@ cp example.env .env
 
 # Start
 docker compose up -d --build
+
+# Load sample data and knowledge
 docker exec -it dash-api python -m dash.scripts.load_data
 docker exec -it dash-api python -m dash.scripts.load_knowledge
 ```
@@ -99,6 +101,12 @@ docker exec -it dash-api python -m dash.scripts.load_knowledge
 |----------|-----|
 | API | http://localhost:8000 |
 | Web UI | [os.agno.com](https://os.agno.com) → Add OS → Local → `http://localhost:8000` |
+
+## Connect to the Web UI
+
+1. Open [os.agno.com](https://os.agno.com) and login
+2. Add OS → Local → `http://localhost:8000`
+3. Click "Connect"
 
 **Try it** (sample F1 dataset):
 

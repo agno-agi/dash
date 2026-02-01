@@ -19,13 +19,13 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    from dash.agent import data_agent_knowledge
+    from dash.agents import dash_knowledge
 
     if args.recreate:
         print("Recreating knowledge base (dropping existing data)...\n")
-        if data_agent_knowledge.vector_db:
-            data_agent_knowledge.vector_db.drop()
-            data_agent_knowledge.vector_db.create()
+        if dash_knowledge.vector_db:
+            dash_knowledge.vector_db.drop()
+            dash_knowledge.vector_db.create()
 
     print(f"Loading knowledge from: {KNOWLEDGE_DIR}\n")
 
@@ -39,6 +39,6 @@ if __name__ == "__main__":
         print(f"  {subdir}/: {len(files)} files")
 
         if files:
-            data_agent_knowledge.insert(name=f"knowledge-{subdir}", path=str(path))
+            dash_knowledge.insert(name=f"knowledge-{subdir}", path=str(path))
 
     print("\nDone!")

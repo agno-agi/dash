@@ -8,7 +8,7 @@ Dash is a self-learning data agent that delivers **insights, not just SQL result
 
 ```
 dash/
-├── agent.py              # Main agent (knowledge + LearningMachine)
+├── agents.py             # Dash agents (dash, reasoning_dash)
 ├── paths.py              # Path constants
 ├── knowledge/            # Knowledge files (tables, queries, business rules)
 │   ├── tables/           # Table metadata JSON files
@@ -43,7 +43,7 @@ db/
 ./scripts/format.sh      # Format code
 ./scripts/validate.sh    # Lint + type check
 python -m dash           # CLI mode
-python -m dash.agent     # Test mode (runs sample query)
+python -m dash.agents    # Test mode (runs sample query)
 
 # Data & Knowledge
 python -m dash.scripts.load_data       # Load F1 sample data
@@ -66,16 +66,16 @@ python -m dash.evals.run_evals -v           # Verbose mode
 
 ```python
 # KNOWLEDGE: Static, curated (table schemas, validated queries)
-data_agent_knowledge = Knowledge(...)
+dash_knowledge = Knowledge(...)
 
 # LEARNINGS: Dynamic, discovered (error patterns, gotchas)
-data_agent_learnings = Knowledge(...)
+dash_learnings = Knowledge(...)
 
-data_agent = Agent(
-    knowledge=data_agent_knowledge,
+dash = Agent(
+    knowledge=dash_knowledge,
     search_knowledge=True,
     learning=LearningMachine(
-        knowledge=data_agent_learnings,  # separate from static knowledge
+        knowledge=dash_learnings,  # separate from static knowledge
         user_profile=UserProfileConfig(mode=LearningMode.AGENTIC),
         user_memory=UserMemoryConfig(mode=LearningMode.AGENTIC),
         learned_knowledge=LearnedKnowledgeConfig(mode=LearningMode.AGENTIC),
@@ -95,7 +95,7 @@ data_agent = Agent(
 | 1. Table Usage | `dash/knowledge/tables/*.json` | `dash/context/semantic_model.py` |
 | 2. Business Rules | `dash/knowledge/business/*.json` | `dash/context/business_rules.py` |
 | 3. Query Patterns | `dash/knowledge/queries/*.sql` | Loaded into knowledge base |
-| 4. Institutional Knowledge | Exa MCP | `dash/agent.py` |
+| 4. Institutional Knowledge | Exa MCP | `dash/agents.py` |
 | 5. Learnings | Learning Machine | Separate knowledge base |
 | 6. Runtime Context | `introspect_schema` | `dash/tools/introspect.py` |
 

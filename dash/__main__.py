@@ -1,6 +1,6 @@
 """CLI entry point: python -m dash"""
 
-from dash.agent import data_agent
+from dash.agents import dash
 
 if __name__ == "__main__":
-    data_agent.cli_app(stream=True)
+    dash.cli_app(stream=True)

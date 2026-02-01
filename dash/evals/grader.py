@@ -1,5 +1,5 @@
 """
-LLM-based grader for evaluating Data Agent responses.
+LLM-based grader for evaluating Dash responses.
 
 Uses a small, fast model to evaluate if the agent's response correctly
 answers the user's question given the expected results.
@@ -50,7 +50,7 @@ def grade_response(
     response: str,
     expected_values: list[str],
     golden_result: list[dict] | None = None,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-5-mini",
 ) -> GradeResult:
     """
     Use an LLM to grade the agent's response.
@@ -175,12 +175,8 @@ def compare_results(
     # If key columns specified, only compare those
     if key_columns:
         key_cols = [k.lower().strip() for k in key_columns]
-        expected_normalized = [
-            {k: v for k, v in r.items() if k in key_cols} for r in expected_normalized
-        ]
-        actual_normalized = [
-            {k: v for k, v in r.items() if k in key_cols} for r in actual_normalized
-        ]
+        expected_normalized = [{k: v for k, v in r.items() if k in key_cols} for r in expected_normalized]
+        actual_normalized = [{k: v for k, v in r.items() if k in key_cols} for r in actual_normalized]
 
     # Check if key values from expected appear in actual
     # This is a lenient comparison - actual can have more data
@@ -196,11 +192,7 @@ def compare_results(
                     return False, f"Mismatch in '{key}': expected '{expected_val}', got '{actual_val}'"
             else:
                 # Check if the value appears anywhere in actual
-                found = any(
-                    expected_val.lower() in str(v).lower()
-                    for r in actual_normalized
-                    for v in r.values()
-                )
+                found = any(expected_val.lower() in str(v).lower() for r in actual_normalized for v in r.values())
                 if not found:
                     return False, f"Expected value '{expected_val}' not found in actual results"
 

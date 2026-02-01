@@ -72,7 +72,7 @@ def run_evals(
         llm_grader: Use LLM to grade responses
         compare_results: Compare actual results against golden SQL results
     """
-    from dash.agent import data_agent
+    from dash.agents import dash
 
     # Filter tests
     tests = TEST_CASES
@@ -116,7 +116,7 @@ def run_evals(
             test_start = time.time()
 
             try:
-                result = data_agent.run(test_case.question)
+                result = dash.run(test_case.question)
                 response = result.content or ""
                 duration = time.time() - test_start
 
@@ -202,12 +202,9 @@ def evaluate_response(
             # Simple check: do expected values appear in golden result?
             # For now, just verify golden SQL runs and check expected strings
             # A more sophisticated version could extract agent's SQL and compare results
-            from dash.evals.grader import compare_results as compare_fn
 
             # Check if expected strings match golden result values
-            golden_values = [
-                str(v) for row in golden_result for v in row.values()
-            ]
+            golden_values = [str(v) for row in golden_result for v in row.values()]
             result_pass = all(
                 any(exp.lower() in gv.lower() for gv in golden_values)
                 for exp in test_case.expected_strings
@@ -227,18 +224,18 @@ def evaluate_response(
         try:
             from dash.evals.grader import grade_response
 
-            golden_result = result.get("golden_result")
-            if not golden_result and test_case.golden_sql:
+            llm_golden_result: list[dict] | None = result.get("golden_result")
+            if not llm_golden_result and test_case.golden_sql:
                 try:
-                    golden_result = execute_golden_sql(test_case.golden_sql)
+                    llm_golden_result = execute_golden_sql(test_case.golden_sql)
                 except Exception:
-                    golden_result = None
+                    llm_golden_result = None
 
             grade = grade_response(
                 question=test_case.question,
                 response=response,
                 expected_values=test_case.expected_strings,
-                golden_result=golden_result,
+                golden_result=llm_golden_result,
             )
             result["llm_grade"] = grade.score
             result["llm_reasoning"] = grade.reasoning
@@ -281,10 +278,12 @@ def display_results(
                 notes = f"LLM: {r['llm_grade']:.1f}"
         elif r["status"] == "FAIL":
             status = Text("FAIL", style="red")
-            if llm_grader and r.get("llm_reasoning"):
-                notes = r["llm_reasoning"][:35]
-            elif r.get("missing"):
-                notes = f"Missing: {', '.join(r['missing'][:2])}"
+            llm_reasoning = r.get("llm_reasoning")
+            missing = r.get("missing")
+            if llm_grader and llm_reasoning:
+                notes = llm_reasoning[:35]
+            elif missing:
+                notes = f"Missing: {', '.join(missing[:2])}"
             else:
                 notes = ""
         else:
@@ -344,7 +343,9 @@ def display_summary(results: list[EvalResult], total_duration: float, category: 
     summary.add_row("Avg time:", f"{total_duration / total:.1f}s per test" if total else "N/A")
 
     # Add LLM grading average if available
-    llm_grades = [r["llm_grade"] for r in results if r.get("llm_grade") is not None]
+    llm_grades: list[float] = [
+        r["llm_grade"] for r in results if r.get("llm_grade") is not None and isinstance(r["llm_grade"], (int, float))
+    ]
     if llm_grades:
         avg_grade = sum(llm_grades) / len(llm_grades)
         summary.add_row("Avg LLM Score:", f"{avg_grade:.2f}")
@@ -383,7 +384,7 @@ def display_summary(results: list[EvalResult], total_duration: float, category: 
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run Data Agent evaluations")
+    parser = argparse.ArgumentParser(description="Run Dash evaluations")
     parser.add_argument("--category", "-c", choices=CATEGORIES, help="Filter by category")
     parser.add_argument("--verbose", "-v", action="store_true", help="Show full responses on failure")
     parser.add_argument(
