@@ -1,10 +1,10 @@
 """
-Run evaluations against the Data Agent.
+Run evaluations against Dash.
 
 Usage:
-    python -m da.evals.run_evals
-    python -m da.evals.run_evals --category basic
-    python -m da.evals.run_evals --verbose
+    python -m dash.evals.run_evals
+    python -m dash.evals.run_evals --category basic
+    python -m dash.evals.run_evals --verbose
 """
 
 import argparse
@@ -17,7 +17,7 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn
 from rich.table import Table
 from rich.text import Text
 
-from da.evals.test_cases import CATEGORIES, TEST_CASES
+from dash.evals.test_cases import CATEGORIES, TEST_CASES
 
 
 class EvalResult(TypedDict, total=False):
@@ -35,7 +35,7 @@ console = Console()
 
 def run_evals(category: str | None = None, verbose: bool = False):
     """Run evaluation suite."""
-    from da.agent import data_agent
+    from dash.agent import data_agent
 
     # Filter tests
     tests = TEST_CASES

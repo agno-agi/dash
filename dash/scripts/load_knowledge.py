@@ -2,13 +2,13 @@
 Load Knowledge - Loads table metadata, queries, and business rules into knowledge base.
 
 Usage:
-    python -m da.scripts.load_knowledge             # Upsert (update existing)
-    python -m da.scripts.load_knowledge --recreate  # Drop and reload all
+    python -m dash.scripts.load_knowledge             # Upsert (update existing)
+    python -m dash.scripts.load_knowledge --recreate  # Drop and reload all
 """
 
 import argparse
 
-from da.paths import KNOWLEDGE_DIR
+from dash.paths import KNOWLEDGE_DIR
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Load knowledge into vector database")
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    from da.agent import data_agent_knowledge
+    from dash.agent import data_agent_knowledge
 
     if args.recreate:
         print("Recreating knowledge base (dropping existing data)...\n")

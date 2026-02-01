@@ -6,7 +6,7 @@ from typing import Any
 
 from agno.utils.log import logger
 
-from da.paths import BUSINESS_DIR
+from dash.paths import BUSINESS_DIR
 
 
 def load_business_rules(business_dir: Path | None = None) -> dict[str, list[Any]]:

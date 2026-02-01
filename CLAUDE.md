@@ -2,14 +2,18 @@
 
 ## Project Overview
 
-Data Agent ("Dash") - A self-learning data agent with 6 layers of context for grounded SQL generation. Inspired by [OpenAI's internal data agent](https://openai.com/index/how-openai-built-its-data-agent/).
+Dash - A self-learning data agent with 6 layers of context for grounded SQL generation. Inspired by [OpenAI's internal data agent](https://openai.com/index/how-openai-built-its-data-agent/).
 
 ## Structure
 
 ```
-da/
+dash/
 ├── agent.py              # Main agent (knowledge + LearningMachine)
 ├── paths.py              # Path constants
+├── knowledge/            # Knowledge files (tables, queries, business rules)
+│   ├── tables/           # Table metadata JSON files
+│   ├── queries/          # Validated SQL queries
+│   └── business/         # Business rules and metrics
 ├── context/
 │   ├── semantic_model.py # Layer 1: Table metadata
 │   └── business_rules.py # Layer 2: Human annotations
@@ -38,17 +42,17 @@ db/
 ./scripts/venv_setup.sh && source .venv/bin/activate
 ./scripts/format.sh      # Format code
 ./scripts/validate.sh    # Lint + type check
-python -m da             # CLI mode
-python -m da.agent       # Test mode (runs sample query)
+python -m dash           # CLI mode
+python -m dash.agent     # Test mode (runs sample query)
 
 # Data & Knowledge
-python -m da.scripts.load_data       # Load F1 sample data
-python -m da.scripts.load_knowledge  # Load knowledge into vector DB
+python -m dash.scripts.load_data       # Load F1 sample data
+python -m dash.scripts.load_knowledge  # Load knowledge into vector DB
 
 # Evaluations
-python -m da.evals.run_evals              # Run all evals
-python -m da.evals.run_evals -c basic     # Run specific category
-python -m da.evals.run_evals -v           # Verbose mode
+python -m dash.evals.run_evals              # Run all evals
+python -m dash.evals.run_evals -c basic     # Run specific category
+python -m dash.evals.run_evals -v           # Verbose mode
 ```
 
 ## Architecture
@@ -83,12 +87,12 @@ data_agent = Agent(
 
 | Layer | Source | Code |
 |-------|--------|------|
-| 1. Table Metadata | `knowledge/tables/*.json` | `da/context/semantic_model.py` |
-| 2. Human Annotations | `knowledge/business/*.json` | `da/context/business_rules.py` |
-| 3. Query Patterns | `knowledge/queries/*.sql` | Loaded into knowledge base |
-| 4. Institutional Knowledge | Exa MCP | `da/agent.py` |
+| 1. Table Metadata | `dash/knowledge/tables/*.json` | `dash/context/semantic_model.py` |
+| 2. Human Annotations | `dash/knowledge/business/*.json` | `dash/context/business_rules.py` |
+| 3. Query Patterns | `dash/knowledge/queries/*.sql` | Loaded into knowledge base |
+| 4. Institutional Knowledge | Exa MCP | `dash/agent.py` |
 | 5. Memory | LearningMachine | Separate knowledge base |
-| 6. Runtime Context | `introspect_schema` | `da/tools/introspect.py` |
+| 6. Runtime Context | `introspect_schema` | `dash/tools/introspect.py` |
 
 ## Data Quality (F1 Dataset)
 

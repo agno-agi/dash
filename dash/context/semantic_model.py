@@ -6,7 +6,7 @@ from typing import Any
 
 from agno.utils.log import logger
 
-from da.paths import TABLES_DIR
+from dash.paths import TABLES_DIR
 
 MAX_QUALITY_NOTES = 5
 

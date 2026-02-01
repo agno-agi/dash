@@ -2,7 +2,7 @@
 Dash - A self-learning data agent
 ================================
 
-Test: python -m da.agent
+Test: python -m dash.agent
 """
 
 from os import getenv
@@ -23,9 +23,9 @@ from agno.tools.reasoning import ReasoningTools
 from agno.tools.sql import SQLTools
 from agno.vectordb.pgvector import PgVector, SearchType
 
-from da.context.business_rules import BUSINESS_CONTEXT
-from da.context.semantic_model import SEMANTIC_MODEL_STR
-from da.tools import create_introspect_schema_tool, create_save_validated_query_tool
+from dash.context.business_rules import BUSINESS_CONTEXT
+from dash.context.semantic_model import SEMANTIC_MODEL_STR
+from dash.tools import create_introspect_schema_tool, create_save_validated_query_tool
 from db import db_url, get_postgres_db
 
 # ============================================================================

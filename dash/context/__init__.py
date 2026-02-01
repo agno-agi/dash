@@ -1,7 +1,7 @@
-"""Context builders for the Data Agent's system prompt."""
+"""Context builders for Dash's system prompt."""
 
-from da.context.business_rules import BUSINESS_CONTEXT, build_business_context, load_business_rules
-from da.context.semantic_model import (
+from dash.context.business_rules import BUSINESS_CONTEXT, build_business_context, load_business_rules
+from dash.context.semantic_model import (
     SEMANTIC_MODEL,
     SEMANTIC_MODEL_STR,
     build_semantic_model,
