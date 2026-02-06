@@ -27,6 +27,7 @@ from agno.vectordb.pgvector import PgVector, SearchType
 from dash.context.business_rules import BUSINESS_CONTEXT
 from dash.context.semantic_model import SEMANTIC_MODEL_STR
 from dash.tools import (
+    create_export_to_excel_tool,
     create_introspect_schema_tool,
     create_save_learning_tool,
     create_save_validated_query_tool,
@@ -71,12 +72,14 @@ dash_learnings = Knowledge(
 save_validated_query = create_save_validated_query_tool(dash_knowledge)
 save_learning = create_save_learning_tool(dash_learnings)
 introspect_schema = create_introspect_schema_tool(duckdb_url)
+export_to_excel = create_export_to_excel_tool(duckdb_url)
 
 base_tools: list = [
     SQLTools(db_url=duckdb_url),
     save_validated_query,
     save_learning,
     introspect_schema,
+    export_to_excel,
     MCPTools(url=f"https://mcp.exa.ai/mcp?exaApiKey={getenv('EXA_API_KEY', '')}&tools=web_search_exa"),
 ]
 
@@ -156,6 +159,12 @@ If in doubt, save it. Future-you will thank present-you.
 |-----|------|
 | "Hamilton: 11 wins" | "Hamilton won 11 of 21 races (52%) — 7 more than Bottas" |
 | "Schumacher: 7 titles" | "Schumacher's 7 titles stood for 15 years until Hamilton matched it" |
+
+## Excel Export
+
+When results are tabular and useful as a spreadsheet, offer `export_to_excel`.
+The tool generates a professionally formatted `.xlsx` with headers, number formats,
+freeze panes, and auto-filters. Pass the same SQL query and a descriptive title.
 
 ## SQL Rules
 

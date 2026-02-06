@@ -21,6 +21,7 @@ dependencies = [
   "pgvector",
   "psycopg[binary]",
   "sqlalchemy",
+  "xlsxwriter",
 ]
 
 [project.optional-dependencies]
