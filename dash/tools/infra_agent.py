@@ -363,6 +363,172 @@ def create_infra_agent_tools(base_url: str, secret: str) -> list:
         except httpx.RequestError as e:
             return f"Error: Could not connect to infra-agent — {e}"
 
+    # ── Tool: prometheus_query ────────────────────────────────
+
+    @tool
+    def prometheus_query(query: str, time_range: str = "1h") -> str:
+        """Run a PromQL query against the platform's Prometheus instance.
+
+        Use this to check metrics like CPU usage, memory, request rates,
+        error rates, and container health. Results come from a job submitted
+        to the infra-agent, not a direct Prometheus connection.
+
+        Args:
+            query: PromQL expression (e.g. 'up', 'rate(http_requests_total[5m])').
+            time_range: Lookback window (e.g. '1h', '30m', '6h'). Default '1h'.
+
+        Returns:
+            Query result with metric values and labels.
+        """
+        try:
+            result = _post(
+                "/portal/jobs",
+                {
+                    "kind": "prometheus.query",
+                    "args": {"query": query, "time_range": time_range},
+                    "requested_by": "ops-dash",
+                    "sync": True,
+                },
+            )
+            if result.get("result"):
+                data = result["result"]
+                return json.dumps(data, indent=2, default=str)[:2000]
+            return f"Job submitted: {result.get('job_id', '?')} — status: {result.get('status', '?')}"
+        except httpx.HTTPStatusError as e:
+            return f"Error ({e.response.status_code}): {e.response.text[:200]}"
+        except httpx.RequestError as e:
+            return f"Error: Could not connect to infra-agent — {e}"
+
+    # ── Tool: loki_query ─────────────────────────────────────
+
+    @tool
+    def loki_query(query: str, limit: int = 100, time_range: str = "1h") -> str:
+        """Run a LogQL query against the platform's Loki instance.
+
+        Use this to search application logs, error messages, and operational
+        events. Results come from a job submitted to the infra-agent.
+
+        Args:
+            query: LogQL expression (e.g. '{container="traefik"} |= "error"').
+            limit: Max log lines to return (default 100).
+            time_range: Lookback window (e.g. '1h', '30m', '6h'). Default '1h'.
+
+        Returns:
+            Matching log lines with timestamps and labels.
+        """
+        try:
+            result = _post(
+                "/portal/jobs",
+                {
+                    "kind": "loki.query",
+                    "args": {"query": query, "limit": limit, "time_range": time_range},
+                    "requested_by": "ops-dash",
+                    "sync": True,
+                },
+            )
+            if result.get("result"):
+                data = result["result"]
+                return json.dumps(data, indent=2, default=str)[:2000]
+            return f"Job submitted: {result.get('job_id', '?')} — status: {result.get('status', '?')}"
+        except httpx.HTTPStatusError as e:
+            return f"Error ({e.response.status_code}): {e.response.text[:200]}"
+        except httpx.RequestError as e:
+            return f"Error: Could not connect to infra-agent — {e}"
+
+    # ── Tool: grafana_alerts ─────────────────────────────────
+
+    @tool
+    def grafana_alerts() -> str:
+        """Get current Grafana alert statuses across the platform.
+
+        Returns all active, pending, and recently resolved alerts from
+        Grafana's unified alerting system. Use this to understand what
+        alerting conditions are currently firing or recently cleared.
+
+        Returns:
+            Alert list with names, states, severity, and affected services.
+        """
+        try:
+            result = _post(
+                "/portal/jobs",
+                {
+                    "kind": "grafana.alerts",
+                    "args": {},
+                    "requested_by": "ops-dash",
+                    "sync": True,
+                },
+            )
+            if result.get("result"):
+                alerts = result["result"]
+                if isinstance(alerts, list):
+                    if not alerts:
+                        return "No active Grafana alerts."
+                    lines = [f"**Grafana Alerts** ({len(alerts)})", ""]
+                    for a in alerts[:20]:
+                        state = a.get("state", "?")
+                        lines.append(
+                            f"- [{state}] {a.get('name', '?')} "
+                            f"({a.get('severity', 'unknown')})"
+                        )
+                    return "\n".join(lines)
+                return json.dumps(alerts, indent=2, default=str)[:2000]
+            return f"Job submitted: {result.get('job_id', '?')} — status: {result.get('status', '?')}"
+        except httpx.HTTPStatusError as e:
+            return f"Error ({e.response.status_code}): {e.response.text[:200]}"
+        except httpx.RequestError as e:
+            return f"Error: Could not connect to infra-agent — {e}"
+
+    # ── Tool: docker_state ───────────────────────────────────
+
+    @tool
+    def docker_state(host: str = "platform-core") -> str:
+        """Get Docker container and service state for a managed host.
+
+        Returns running containers, Docker Swarm services, resource usage,
+        and health status. Use this to check what's running and whether
+        services are healthy.
+
+        Args:
+            host: Host name (e.g. 'platform-core', 'prod'). Default 'platform-core'.
+
+        Returns:
+            Docker state summary with services, containers, and resource usage.
+        """
+        try:
+            result = _post(
+                "/portal/jobs",
+                {
+                    "kind": "docker.status",
+                    "args": {"host": host},
+                    "requested_by": "ops-dash",
+                    "sync": True,
+                },
+            )
+            if result.get("result"):
+                data = result["result"]
+                if isinstance(data, dict):
+                    services = data.get("services", [])
+                    containers = data.get("containers", [])
+                    lines = [
+                        f"**Docker State — {host}**",
+                        "",
+                        f"Services: {len(services)} | Containers: {len(containers)}",
+                        "",
+                    ]
+                    for svc in services[:15]:
+                        lines.append(
+                            f"- {svc.get('name', '?')} "
+                            f"({svc.get('replicas', '?')}) "
+                            f"[{svc.get('image', '?')}]"
+                        )
+                    return "\n".join(lines)
+                return json.dumps(data, indent=2, default=str)[:2000]
+            return f"Job submitted: {result.get('job_id', '?')} — status: {result.get('status', '?')}"
+        except httpx.HTTPStatusError as e:
+            return f"Error ({e.response.status_code}): {e.response.text[:200]}"
+        except httpx.RequestError as e:
+            return f"Error: Could not connect to infra-agent — {e}"
+
     return [
         submit_infra_job,
         get_job_status,
@@ -371,4 +537,8 @@ def create_infra_agent_tools(base_url: str, secret: str) -> list:
         get_platform_health,
         list_workflows,
         search_platform_knowledge,
+        prometheus_query,
+        loki_query,
+        grafana_alerts,
+        docker_state,
     ]

@@ -216,8 +216,14 @@ You can also **take action** on the platform via the infra-agent tool bridge:
 - `get_platform_health` — Quick operational pulse check
 - `list_workflows` — Monitor durable deploy-and-verify pipelines
 - `search_platform_knowledge` — Find runbooks and architecture docs
+- `prometheus_query` — Run PromQL queries (CPU, memory, request rates, error rates)
+- `loki_query` — Search application logs with LogQL
+- `grafana_alerts` — Get active/pending/resolved alert statuses
+- `docker_state` — Get container/service state for a managed host
 
 When the user asks about current platform state, prefer querying the warehouse SQL tables first.
+For live metrics (CPU, memory, request rates) use `prometheus_query`.
+For log analysis use `loki_query`. For alert status use `grafana_alerts`.
 When they ask to **do** something (deploy, scan, healthcheck), use `submit_infra_job`.
 
 ## SQL Rules
