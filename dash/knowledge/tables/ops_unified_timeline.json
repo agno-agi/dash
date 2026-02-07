@@ -1,0 +1,27 @@
+{
+  "table_name": "ops_unified_timeline",
+  "table_description": "Unified event timeline view (Phase 5.3) that joins deploy_events, docker_events, and incident_markers into a single chronological stream. Use this for incident timeline reconstruction and cross-source event correlation.",
+  "use_cases": [
+    "Reconstruct an incident timeline by filtering on a time window",
+    "Find all events related to a specific service across all sources",
+    "Correlate deploys with docker container crashes",
+    "Build chronological narratives for post-mortems"
+  ],
+  "data_quality_notes": [
+    "This is a VIEW — it reads from deploy_events, docker_events, and incident_markers in real time",
+    "source values: 'deploy', 'docker', 'incident'",
+    "entity is mapped from app_name (deploys), container_name/service_name (docker), or title (incidents)",
+    "environment is mapped from environment (deploys), host (docker), or first affected_service (incidents)",
+    "Always filter by occurred_at range to avoid full table scans across all three source tables",
+    "Use LIMIT when exploring — large time windows can return thousands of rows",
+    "details column is JSONB from the source table — structure varies by source type"
+  ],
+  "table_columns": [
+    {"name": "occurred_at", "type": "TIMESTAMPTZ", "description": "When the event happened"},
+    {"name": "source", "type": "TEXT", "description": "'deploy', 'docker', or 'incident'"},
+    {"name": "event_type", "type": "TEXT", "description": "Source-specific event type (e.g., 'deploy_succeeded', 'die', 'critical')"},
+    {"name": "entity", "type": "TEXT", "description": "The service/container/incident involved"},
+    {"name": "environment", "type": "TEXT", "description": "Where it happened (host or environment)"},
+    {"name": "details", "type": "JSONB", "description": "Additional event-specific details"}
+  ]
+}

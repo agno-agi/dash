@@ -157,3 +157,46 @@ CREATE INDEX IF NOT EXISTS idx_update_status_service
     ON update_status (service);
 CREATE INDEX IF NOT EXISTS idx_state_snapshots_host
     ON state_snapshots (host, captured_at DESC);
+CREATE INDEX IF NOT EXISTS idx_incident_markers_started
+    ON incident_markers (started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_incident_markers_severity
+    ON incident_markers (severity);
+CREATE INDEX IF NOT EXISTS idx_incident_markers_unresolved
+    ON incident_markers (resolved_at) WHERE resolved_at IS NULL;
+
+-- ============================================================
+-- Views: Incident Timeline Reconstruction (Phase 5.3)
+-- ============================================================
+
+-- Unified event timeline across all event sources.
+-- Use this view with time-range filters for incident reconstruction:
+--   SELECT * FROM ops_unified_timeline
+--   WHERE occurred_at BETWEEN '2025-01-15 03:00' AND '2025-01-15 04:00'
+--   ORDER BY occurred_at;
+CREATE OR REPLACE VIEW ops_unified_timeline AS
+SELECT
+    occurred_at,
+    'deploy' AS source,
+    event_type,
+    app_name AS entity,
+    environment,
+    details
+FROM deploy_events
+UNION ALL
+SELECT
+    occurred_at,
+    'docker' AS source,
+    event_type,
+    COALESCE(container_name, service_name) AS entity,
+    host AS environment,
+    details
+FROM docker_events
+UNION ALL
+SELECT
+    started_at AS occurred_at,
+    'incident' AS source,
+    severity AS event_type,
+    title AS entity,
+    COALESCE(affected_services[1], 'unknown') AS environment,
+    knowledge_pack AS details
+FROM incident_markers;

@@ -213,3 +213,120 @@ SELECT
     (SELECT COUNT(*) FROM actual_services
         WHERE replicas LIKE '0/%') AS degraded_services
 -- </query>
+
+
+-- <query name>incident_timeline_reconstruction</query name>
+-- <query description>
+-- Reconstruct everything that happened during an incident window.
+-- Uses the ops_unified_timeline view to merge deploy, docker, and incident
+-- events into a single chronological stream. Filter by time range and
+-- optionally by entity (service name) to focus the investigation.
+-- </query description>
+-- <query>
+SELECT
+    occurred_at,
+    source,
+    event_type,
+    entity,
+    environment,
+    details
+FROM ops_unified_timeline
+WHERE occurred_at BETWEEN $1 AND $2
+ORDER BY occurred_at
+LIMIT 200
+-- </query>
+
+
+-- <query name>incident_timeline_for_service</query name>
+-- <query description>
+-- Reconstruct all events for a specific service during a time window.
+-- Combines unified timeline with service-level drift observations.
+-- Useful for single-service incident deep dives.
+-- </query description>
+-- <query>
+SELECT
+    occurred_at,
+    source,
+    event_type,
+    entity,
+    environment,
+    details
+FROM ops_unified_timeline
+WHERE occurred_at BETWEEN $1 AND $2
+    AND entity LIKE '%' || $3 || '%'
+ORDER BY occurred_at
+LIMIT 200
+-- </query>
+
+
+-- <query name>incident_correlation</query name>
+-- <query description>
+-- Find correlated events around an incident.
+-- For a given incident marker, expands the window by 15 minutes each side
+-- and finds all related events across deploys, docker, and other incidents.
+-- </query description>
+-- <query>
+SELECT
+    t.occurred_at,
+    t.source,
+    t.event_type,
+    t.entity,
+    t.environment
+FROM incident_markers im
+CROSS JOIN LATERAL (
+    SELECT * FROM ops_unified_timeline
+    WHERE occurred_at BETWEEN (im.started_at - INTERVAL '15 minutes')
+        AND COALESCE(im.resolved_at, NOW()) + INTERVAL '15 minutes'
+) t
+WHERE im.id = $1
+ORDER BY t.occurred_at
+LIMIT 200
+-- </query>
+
+
+-- <query name>recent_incidents</query name>
+-- <query description>
+-- What incidents have occurred recently?
+-- Lists recent incident markers with severity, duration, and affected services.
+-- </query description>
+-- <query>
+SELECT
+    id,
+    title,
+    severity,
+    started_at,
+    resolved_at,
+    EXTRACT(EPOCH FROM COALESCE(resolved_at, NOW()) - started_at) / 60 AS duration_minutes,
+    affected_services,
+    root_cause
+FROM incident_markers
+ORDER BY started_at DESC
+LIMIT 20
+-- </query>
+
+
+-- <query name>incident_pattern_matching</query name>
+-- <query description>
+-- Find incidents with similar characteristics to a given pattern.
+-- Matches by affected services, severity, or root cause keywords.
+-- Used by the SRE agent to find known playbooks for new incidents.
+-- </query description>
+-- <query>
+SELECT
+    id,
+    title,
+    severity,
+    started_at,
+    affected_services,
+    root_cause,
+    resolution,
+    timeline_query,
+    knowledge_pack IS NOT NULL AS has_knowledge_pack
+FROM incident_markers
+WHERE
+    affected_services && $1::TEXT[]
+    OR root_cause ILIKE '%' || $2 || '%'
+    OR title ILIKE '%' || $2 || '%'
+ORDER BY started_at DESC
+LIMIT 10
+-- </query>

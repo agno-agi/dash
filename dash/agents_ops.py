@@ -29,7 +29,13 @@ from agno.vectordb.pgvector import PgVector, SearchType
 
 from dash.context.business_rules import build_business_context
 from dash.context.semantic_model import build_semantic_model, format_semantic_model
-from dash.tools import create_introspect_schema_tool, create_save_validated_query_tool
+from dash.tools import (
+    create_incident_tools,
+    create_infra_agent_tools,
+    create_introspect_schema_tool,
+    create_knowledge_pack_tools,
+    create_save_validated_query_tool,
+)
 from db import get_postgres_db
 
 # ============================================================================
@@ -99,11 +105,29 @@ _ops_business_context = build_business_context(_OPS_BUSINESS_DIR)
 save_validated_query = create_save_validated_query_tool(ops_knowledge)
 introspect_schema = create_introspect_schema_tool(_ops_db_url)
 
+# Infra-agent tool bridge (Phase 5.2) — connects Ops Dash to the
+# Dockhand infra-agent portal API for submitting jobs, querying drift,
+# listing workflows, and searching platform knowledge.
+_infra_agent_url = getenv("INFRA_AGENT_URL", "http://infra-agent:8042")
+_infra_agent_secret = getenv("INFRA_AGENT_PORTAL_SECRET", "")
+_infra_agent_tools = create_infra_agent_tools(_infra_agent_url, _infra_agent_secret) if _infra_agent_secret else []
+
+# Incident timeline tools (Phase 5.3) — reconstruct timelines from
+# the ops_unified_timeline view, create/resolve incident markers,
+# and search for matching incident patterns.
+_incident_tools = create_incident_tools(_ops_db_url)
+
+# Knowledge pack pipeline (Phase 5.4) — auto-generate validated queries,
+# incident signatures, and runbook suggestions from resolved incidents.
+_knowledge_pack_tools = create_knowledge_pack_tools(_ops_db_url, ops_knowledge, ops_learnings)
+
 ops_base_tools: list = [
     SQLTools(db_url=_ops_db_url),
     save_validated_query,
     introspect_schema,
-    # No Exa MCP — ops-only context, no web search needed
+    *_infra_agent_tools,
+    *_incident_tools,
+    *_knowledge_pack_tools,
 ]
 
 # ============================================================================
@@ -159,6 +183,42 @@ Updates are applied in reverse order: P4 first (lowest risk), P0 last.
 |-----|------|
 | "3 drift items found" | "3 drift items, but Traefik's is 60% of total risk due to public exposure × 12-day age" |
 | "5 deploys this week" | "5 deploys, 80% success rate — the Ghost failure correlates with the MySQL OOM at 03:12" |
+
+## Incident Timeline Reconstruction
+
+You can reconstruct and manage incidents directly:
+- `reconstruct_timeline(start_time, end_time)` — Build a chronological event stream from the unified timeline view
+- `create_incident_marker(title, severity, started_at, affected_services)` — Record a new incident
+- `resolve_incident(incident_id, root_cause, resolution)` — Close an incident with resolution details
+- `find_similar_incidents(services, keywords)` — Search for past incidents matching a pattern
+
+**Incident workflow:**
+1. User reports an issue → use `reconstruct_timeline` to see what happened
+2. Identify the incident → `create_incident_marker` to record it
+3. Investigate using SQL + timeline + infra-agent tools
+4. Resolve → `resolve_incident` with root cause and knowledge pack
+5. **Auto-generate knowledge** → `generate_knowledge_pack(incident_id)` to create:
+   - Validated timeline query saved to knowledge base
+   - Incident signature saved as a learning (symptom → root cause mapping)
+   - Runbook suggestion (markdown for human review)
+6. Retrieve knowledge later → `get_incident_knowledge_pack(incident_id)`
+
+The knowledge pack pipeline ensures every resolved incident makes the system smarter.
+Search for past incident signatures with `search_learnings` — they contain symptom patterns,
+root causes, and resolutions that help diagnose future issues faster.
+
+## Infrastructure Actions (when infra-agent is connected)
+
+You can also **take action** on the platform via the infra-agent tool bridge:
+- `submit_infra_job` — Trigger deployments, scans, healthchecks, ETL runs
+- `get_job_status` / `list_infra_jobs` — Track job outcomes
+- `get_drift_balance` — See risk-weighted drift debt and health score
+- `get_platform_health` — Quick operational pulse check
+- `list_workflows` — Monitor durable deploy-and-verify pipelines
+- `search_platform_knowledge` — Find runbooks and architecture docs
+
+When the user asks about current platform state, prefer querying the warehouse SQL tables first.
+When they ask to **do** something (deploy, scan, healthcheck), use `submit_infra_job`.
 
 ## SQL Rules
 
