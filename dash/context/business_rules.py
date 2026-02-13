@@ -42,6 +42,8 @@ def build_business_context(business_dir: Path | None = None) -> str:
         lines.append("## METRICS\n")
         for m in business["metrics"]:
             lines.append(f"**{m.get('name', 'Unknown')}**: {m.get('definition', '')}")
+            if m.get("database"):
+                lines.append(f"  - Database: `{m['database']}`")
             if m.get("table"):
                 lines.append(f"  - Table: `{m['table']}`")
             if m.get("calculation"):

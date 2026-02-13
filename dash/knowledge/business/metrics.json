@@ -1,48 +1,56 @@
 {
   "metrics": [
     {
+      "database": "main",
       "name": "Race Win",
       "definition": "A driver finishing in first position in a race",
       "table": "race_wins",
       "calculation": "COUNT(*) from race_wins grouped by driver name"
     },
     {
+      "database": "main",
       "name": "World Championship",
       "definition": "A driver finishing the season in first position in the drivers championship",
       "table": "drivers_championship",
       "calculation": "COUNT(*) from drivers_championship WHERE position = '1' (TEXT comparison)"
     },
     {
+      "database": "main",
       "name": "Constructors Championship",
       "definition": "A team finishing the season in first position in the constructors championship",
       "table": "constructors_championship",
       "calculation": "COUNT(*) from constructors_championship WHERE position = 1 (INTEGER comparison)"
     },
     {
+      "database": "main",
       "name": "Podium Finish",
       "definition": "A driver finishing in positions 1, 2, or 3 in a race",
       "table": "race_results",
       "calculation": "COUNT(*) from race_results WHERE position IN ('1', '2', '3')"
     },
     {
+      "database": "main",
       "name": "Fastest Lap",
       "definition": "Recording the fastest lap time during a race",
       "table": "fastest_laps",
       "calculation": "COUNT(*) from fastest_laps grouped by driver name"
     },
     {
+      "database": "main",
       "name": "DNF (Did Not Finish)",
       "definition": "A driver who retired from a race before completion",
       "table": "race_results",
       "calculation": "COUNT(*) from race_results WHERE position = 'Ret'"
     },
     {
+      "database": "main",
       "name": "Points Finish",
       "definition": "A driver finishing in a points-scoring position",
       "table": "race_results",
       "calculation": "COUNT(*) from race_results WHERE points > 0"
     },
     {
+      "database": "main",
       "name": "Championship Points",
       "definition": "Total points accumulated over a season",
       "table": "drivers_championship or constructors_championship",

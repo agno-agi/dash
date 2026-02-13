@@ -1,4 +1,5 @@
 {
+  "database": "main",
   "table_name": "race_wins",
   "table_description": "Documents race win data from 1950-2020, detailing venue, winner, team, and race duration.",
   "use_cases": [

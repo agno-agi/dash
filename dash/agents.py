@@ -20,13 +20,22 @@ from agno.learn import (
 from agno.models.openai import OpenAIResponses
 from agno.tools.mcp import MCPTools
 from agno.tools.reasoning import ReasoningTools
-from agno.tools.sql import SQLTools
 from agno.vectordb.pgvector import PgVector, SearchType
 
 from dash.context.business_rules import BUSINESS_CONTEXT
 from dash.context.semantic_model import SEMANTIC_MODEL_STR
-from dash.tools import create_introspect_schema_tool, create_save_validated_query_tool
-from db import db_url, get_postgres_db
+from dash.tools import (
+    create_analytics_sql_tools,
+    create_introspect_schema_tool,
+    create_save_validated_query_tool,
+)
+from db import (
+    db_url,
+    get_analytics_descriptions,
+    get_analytics_registry,
+    get_postgres_db,
+    has_explicit_analytics_dbs,
+)
 
 # ============================================================================
 # Database & Knowledge
@@ -62,11 +71,16 @@ dash_learnings = Knowledge(
 # Tools
 # ============================================================================
 
+analytics_registry = get_analytics_registry()
+analytics_descriptions = get_analytics_descriptions()
+explicit_analytics_dbs_configured = has_explicit_analytics_dbs()
+
 save_validated_query = create_save_validated_query_tool(dash_knowledge)
-introspect_schema = create_introspect_schema_tool(db_url)
+analytics_tools = create_analytics_sql_tools(analytics_registry)
+introspect_schema = create_introspect_schema_tool(analytics_registry)
 
 base_tools: list = [
-    SQLTools(db_url=db_url),
+    *analytics_tools,
     save_validated_query,
     introspect_schema,
     MCPTools(url=f"https://mcp.exa.ai/mcp?exaApiKey={getenv('EXA_API_KEY', '')}&tools=web_search_exa"),
@@ -75,6 +89,37 @@ base_tools: list = [
 # ============================================================================
 # Instructions
 # ============================================================================
+
+def _build_databases_section(
+    registry: dict[str, str], descriptions: dict[str, str]
+) -> str:
+    """Build explicit analytics database instructions for the prompt."""
+    lines = ["## AVAILABLE DATABASES", ""]
+    lines.append("Use these analytics databases for SQL queries:")
+    lines.append("")
+
+    for name in sorted(registry):
+        description = descriptions.get(name, "")
+        suffix = f": {description}" if description else ""
+        lines.append(f"- **{name}**{suffix}")
+
+    lines.append("")
+    if len(registry) > 1:
+        lines.append(
+            "- Always pass `database` to list_tables, describe_table, "
+            "run_sql_query, and introspect_schema."
+        )
+        lines.append("- If the request is ambiguous, ask which database to use.")
+
+    return "\n".join(lines)
+
+
+DATABASES_SECTION = (
+    _build_databases_section(analytics_registry, analytics_descriptions)
+    if explicit_analytics_dbs_configured
+    else ""
+)
+DATABASES_SECTION_BLOCK = f"{DATABASES_SECTION}\n\n---\n\n" if DATABASES_SECTION else ""
 
 INSTRUCTIONS = f"""\
 You are Dash, a self-learning data agent that provides **insights**, not just query results.
@@ -151,7 +196,7 @@ save_learning(
 
 ---
 
-## SEMANTIC MODEL
+{DATABASES_SECTION_BLOCK}## SEMANTIC MODEL
 
 {SEMANTIC_MODEL_STR}
 ---

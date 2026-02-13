@@ -236,7 +236,10 @@ python -m dash  # CLI mode
 |----------|----------|-------------|
 | `OPENAI_API_KEY` | Yes | OpenAI API key |
 | `EXA_API_KEY` | No | Web search for external knowledge |
-| `DB_*` | No | Database config (defaults to localhost) |
+| `DB_*` | No | Internal Dash DB config for knowledge/learnings/AgentOS |
+| `ANALYTICS_DB_*` | No | Optional analytics DB URLs (`ANALYTICS_DB_<NAME>`) and descriptions (`ANALYTICS_DB_<NAME>_DESC`) |
+
+If no `ANALYTICS_DB_*` variables are set, Dash keeps original single-database behavior and uses the internal DB as analytics source.
 
 ## Further Reading
 

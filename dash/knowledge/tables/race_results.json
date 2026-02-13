@@ -1,4 +1,5 @@
 {
+  "database": "main",
   "table_name": "race_results",
   "table_description": "Holds comprehensive race data for each Formula 1 race from 1950-2020, including positions, drivers, teams, and points.",
   "use_cases": [

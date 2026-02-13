@@ -1,4 +1,5 @@
 {
+  "database": "main",
   "table_name": "drivers_championship",
   "table_description": "Contains data for driver's championship standings from 1950-2020, detailing driver positions, teams, and points.",
   "use_cases": [

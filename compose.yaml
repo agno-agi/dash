@@ -1,4 +1,5 @@
 services:
+  # Internal database used by Dash for knowledge, learnings, and AgentOS state.
   dash-db:
     image: agnohq/pgvector:18
     container_name: dash-db
@@ -31,11 +32,16 @@ services:
       DATA_DIR: /data
       RUNTIME_ENV: dev
       AGNO_DEBUG: "True"
+      # Internal Dash DB (knowledge, learnings, AgentOS)
       DB_HOST: dash-db
       DB_PORT: 5432
       DB_USER: ${DB_USER:-ai}
       DB_PASS: ${DB_PASS:-ai}
       DB_DATABASE: ${DB_DATABASE:-ai}
+      # Optional analytics DBs (read-only by credentials):
+      # ANALYTICS_DB_MAIN=postgresql+psycopg://user:pass@host:5432/dbname
+      # ANALYTICS_DB_MAIN_DESC=F1 sample data
+      # If ANALYTICS_DB_* is not set, Dash uses the internal DB as the single analytics source.
       WAIT_FOR_DB: "True"
       PRINT_ENV_ON_LOAD: "True"
       OPENAI_API_KEY: ${OPENAI_API_KEY}

@@ -1,4 +1,5 @@
 {
+  "database": "main",
   "table_name": "constructors_championship",
   "table_description": "Contains data for the constructor's championship from 1958 to 2020, capturing championship positions from when it was introduced.",
   "use_cases": [
