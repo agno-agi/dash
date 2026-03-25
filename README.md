@@ -26,7 +26,7 @@ Confirm dash is running at [http://localhost:8000/docs](http://localhost:8000/do
 
 ## Connect to the Web UI
 
-1. Open [os.agno.com](https://os.agno.com) and login
+1. Open [os.agno.com](https://os.agno.com/?utm_source=github&utm_medium=example-repo&utm_campaign=agent-example&utm_content=dash&utm_term=agentos) and login
 2. Add OS → Local → `http://localhost:8000`
 3. Click "Connect"
 
@@ -244,5 +244,5 @@ python -m dash  # CLI mode
 
 - [OpenAI's In-House Data Agent](https://openai.com/index/inside-our-in-house-data-agent/) — the inspiration
 - [Self-Improving SQL Agent](https://www.ashpreetbedi.com/articles/sql-agent) — deep dive on an earlier architecture
-- [Agno Docs](https://docs.agno.com)
-- [Discord](https://agno.com/discord)
+- [Agno Docs](https://docs.agno.com/?utm_source=github&utm_medium=example-repo&utm_campaign=agent-example&utm_content=dash&utm_term=docs)
+- [Discord](https://agno.com/discord?utm_source=github&utm_medium=example-repo&utm_campaign=agent-example&utm_content=dash&utm_term=discord)
