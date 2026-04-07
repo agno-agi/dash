@@ -1,6 +1,6 @@
 # Dash
 
-A **self-learning data agent** that delivers insights, not just SQL results. It grounds answers in 6 layers of context and improves with every query. Chat with Dash via Slack, the terminal, or the [AgentOS](https://os.agno.com) web UI.
+A **self-learning data agent** that lives in Slack. It grounds answers in 6 layers of context and improves with every query. Chat with Dash via Slack, the terminal, or the [AgentOS](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agent-example&utm_content=dash&utm_term=agentos) web UI.
 
 > Inspired by [OpenAI's in-house data agent](https://openai.com/index/inside-our-in-house-data-agent/).
 
@@ -26,7 +26,7 @@ Confirm Dash is running at [http://localhost:8000/docs](http://localhost:8000/do
 
 ### Connect to the Web UI
 
-1. Open [os.agno.com](https://os.agno.com) and login
+1. Open [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agent-example&utm_content=dash&utm_term=agentos) and login
 2. Add OS → Local → `http://localhost:8000`
 3. Click "Connect"
 
@@ -219,9 +219,7 @@ railway open
 
 ### Secure your deployment
 
-1. Set `RUNTIME_ENV=prd` in `.env.production`
-2. Set `JWT_VERIFICATION_KEY` from [os.agno.com](https://os.agno.com) → Settings
-3. Connect at os.agno.com → Add OS → your deployed URL
+See [Security](#security) below for setup — you'll need to connect your OS at [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agent-example&utm_content=dash&utm_term=agentos) and add a `JWT_VERIFICATION_KEY` to your environment.
 
 ## Adding Knowledge
 
@@ -353,7 +351,7 @@ AgentOS (app/main.py)  [scheduler=True, tracing=True]
 | `PORT` | No | `8000` | API port |
 | `RUNTIME_ENV` | No | `prd` | `dev` enables hot reload |
 | `AGENTOS_URL` | No | `http://127.0.0.1:8000` | Scheduler callback URL (production) |
-| `JWT_VERIFICATION_KEY` | Production | — | RBAC public key from os.agno.com |
+| `JWT_VERIFICATION_KEY` | Production | — | RBAC public key from [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agent-example&utm_content=dash&utm_term=agentos) |
 
 ## Evaluations
 
@@ -373,12 +371,52 @@ python -m evals --category accuracy  # Run specific category
 python -m evals --verbose            # Show response details
 ```
 
+## Security
+
+Production deployments require authentication via [Agno AgentOS](https://docs.agno.com/agent-os/security/overview?utm_source=github&utm_medium=example-repo&utm_campaign=agent-example&utm_content=dash&utm_term=security). Dash enables [RBAC authorization](https://docs.agno.com/agent-os/security/rbac?utm_source=github&utm_medium=example-repo&utm_campaign=agent-example&utm_content=dash&utm_term=rbac) when `RUNTIME_ENV=prd` (the default). Without a valid `JWT_VERIFICATION_KEY`, production endpoints will reject all requests.
+
+Local development (`RUNTIME_ENV=dev`, set by Docker Compose) runs without auth so you can iterate freely.
+
+### Setup
+
+1. Deploy Dash to Railway (or your cloud provider)
+2. Open [os.agno.com](https://os.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agent-example&utm_content=dash&utm_term=agentos) and connect your deployed OS
+3. Go to **Settings** and generate a key pair
+4. Add the public key to your `.env.production` (paste the full PEM block, no quotes needed):
+
+```bash
+JWT_VERIFICATION_KEY=-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkq...
+-----END PUBLIC KEY-----
+```
+
+5. Push to production and redeploy:
+
+```bash
+./scripts/railway_env.sh
+./scripts/railway_redeploy.sh
+```
+
+The Agno control plane handles JWT issuance, session management, traces, metrics, and the web UI. See the [AgentOS Security docs](https://docs.agno.com/agent-os/security/overview?utm_source=github&utm_medium=example-repo&utm_campaign=agent-example&utm_content=dash&utm_term=security) for details.
+
+### Schema-Level Enforcement
+
+Beyond API-level auth, Dash enforces data access at the database level:
+
+- **Analyst** connects with `default_transaction_read_only=on` — PostgreSQL rejects any write attempt
+- **Engineer** writes are scoped to the `dash` schema — a SQLAlchemy event listener blocks any DDL/DML targeting `public`
+- **Leader** has no direct database access
+
+These are infrastructure guardrails, not prompt instructions. They hold regardless of what the model generates.
+
 ## Learn More
 
 - [OpenAI's In-House Data Agent](https://openai.com/index/inside-our-in-house-data-agent/) — the inspiration
 - [Self-Improving SQL Agent](https://www.ashpreetbedi.com/articles/sql-agent) — deep dive on an earlier architecture
-- [Agno Docs](https://docs.agno.com)
+- [Agno Docs](https://docs.agno.com?utm_source=github&utm_medium=example-repo&utm_campaign=agent-example&utm_content=dash&utm_term=docs)
 
 ## A Note on This Project
 
 This project was largely built with Claude. If you find a mistake, please open an [issue](https://github.com/agno-agi/dash/issues) or submit a pull request.
+
+<p align="center">Built on <a href="https://github.com/agno-agi/agno">Agno</a> · the runtime for agentic software</p>
