@@ -9,11 +9,13 @@ Two schemas:
 - ``dash``: Agent-managed data (views, summary tables). Owned by Engineer.
 """
 
+import re
+
 from agno.db.postgres import PostgresDb
 from agno.knowledge import Knowledge
 from agno.knowledge.embedder.openai import OpenAIEmbedder
 from agno.vectordb.pgvector import PgVector, SearchType
-from sqlalchemy import Engine, create_engine, text
+from sqlalchemy import Engine, create_engine, event, text
 
 from db.url import db_url
 
@@ -26,6 +28,42 @@ DASH_SCHEMA = "dash"
 # Cached engines — one per access pattern, created on first use.
 _dash_engine: Engine | None = None
 _readonly_engine: Engine | None = None
+
+# ---------------------------------------------------------------------------
+# Public-schema write guard (Engineer connection)
+# ---------------------------------------------------------------------------
+# Matches DDL/DML that explicitly targets the public schema.
+# Allows reads (SELECT FROM public.*) but blocks writes (CREATE TABLE public.x,
+# DROP VIEW public.y, INSERT INTO public.z, etc.).
+_PUBLIC_WRITE_RE = re.compile(
+    r"""(?ix)
+    # DDL targeting public schema
+    (?:create|alter|drop)\s+
+    (?:or\s+replace\s+)?
+    (?:(?:temp|temporary|unlogged|materialized)\s+)?
+    (?:table|view|index|sequence|function|procedure|trigger|type)\s+
+    (?:if\s+(?:not\s+)?exists\s+)?
+    "?public"?\s*\.
+    |
+    # DML targeting public schema
+    insert\s+into\s+"?public"?\s*\.
+    |
+    update\s+"?public"?\s*\.
+    |
+    delete\s+from\s+"?public"?\s*\.
+    |
+    truncate\s+(?:table\s+)?"?public"?\s*\.
+    """,
+)
+
+
+def _guard_public_schema(conn, cursor, statement, parameters, context, executemany):
+    """Block DDL/DML targeting the public schema on the Engineer's connection."""
+    if _PUBLIC_WRITE_RE.search(statement):
+        raise RuntimeError(
+            "Cannot write to the public schema. "
+            "Use the dash schema for all CREATE, ALTER, DROP, INSERT, UPDATE, and DELETE operations."
+        )
 
 
 def get_sql_engine() -> Engine:
@@ -46,7 +84,10 @@ def get_sql_engine() -> Engine:
     _dash_engine = create_engine(
         db_url,
         connect_args={"options": f"-c search_path={DASH_SCHEMA},public"},
+        pool_size=10,
+        max_overflow=20,
     )
+    event.listen(_dash_engine, "before_cursor_execute", _guard_public_schema)
     return _dash_engine
 
 
@@ -62,6 +103,8 @@ def get_readonly_engine() -> Engine:
     _readonly_engine = create_engine(
         db_url,
         connect_args={"options": "-c default_transaction_read_only=on"},
+        pool_size=10,
+        max_overflow=20,
     )
     return _readonly_engine
 

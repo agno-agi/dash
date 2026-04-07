@@ -11,7 +11,8 @@
     "new_plan is NULL for cancellations",
     "new_mrr is 0 for cancellations",
     "change_type values: 'upgrade', 'downgrade', 'cancellation'",
-    "MRR delta = new_mrr - previous_mrr (negative for downgrades and cancellations)"
+    "MRR delta = new_mrr - previous_mrr (negative for downgrades and cancellations)",
+    "Cancellation reasons are NOT in this table — use subscriptions.cancellation_reason instead"
   ],
   "table_columns": [
     {"name": "id", "type": "SERIAL", "description": "Primary key"},

@@ -356,7 +356,7 @@ AgentOS (app/main.py)  [scheduler=True, tracing=True]
 
 ## Evaluations
 
-Four eval categories using Agno's eval framework:
+Five eval categories using Agno's eval framework:
 
 | Category | Eval Type | What It Tests |
 |----------|-----------|---------------|
@@ -364,6 +364,7 @@ Four eval categories using Agno's eval framework:
 | routing | ReliabilityEval | Team routes to correct agent/tools |
 | security | AgentAsJudgeEval (binary) | No credential or secret leaks |
 | governance | AgentAsJudgeEval (binary) | Refuses destructive SQL operations |
+| boundaries | AgentAsJudgeEval (binary) | Schema access boundaries respected |
 
 ```sh
 python -m evals                      # Run all evals

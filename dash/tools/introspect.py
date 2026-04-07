@@ -45,31 +45,29 @@ def create_introspect_schema_tool(db_url: str, engine: Engine | None = None):
             schemas = [schema] if schema and schema in SCHEMAS else SCHEMAS
 
             if table_name is None:
-                # List all tables and views across schemas
+                # List all tables and views across schemas (single connection)
                 lines: list[str] = []
-                for s in schemas:
-                    tables = insp.get_table_names(schema=s)
-                    views = insp.get_view_names(schema=s)
-                    all_objects = sorted(set(tables) | set(views))
-                    if not all_objects:
-                        lines.append(f"## {s} (empty)")
-                        lines.append("")
-                        continue
+                with _engine.connect() as conn:
+                    for s in schemas:
+                        tables = insp.get_table_names(schema=s)
+                        views = insp.get_view_names(schema=s)
+                        all_objects = sorted(set(tables) | set(views))
+                        if not all_objects:
+                            lines.append(f"## {s} (empty)")
+                            lines.append("")
+                            continue
 
-                    label = "company data — read only" if s == "public" else "agent-managed"
-                    lines.append(f"## {s} ({label})")
-                    lines.append("")
-                    for obj in all_objects:
-                        kind = "view" if obj in views else "table"
-                        try:
-                            with _engine.connect() as conn:
-                                count = conn.execute(
-                                    text(f'SELECT COUNT(*) FROM "{s}"."{obj}"')
-                                ).scalar()
+                        label = "company data — read only" if s == "public" else "agent-managed"
+                        lines.append(f"## {s} ({label})")
+                        lines.append("")
+                        for obj in all_objects:
+                            kind = "view" if obj in views else "table"
+                            try:
+                                count = conn.execute(text(f'SELECT COUNT(*) FROM "{s}"."{obj}"')).scalar()
                                 lines.append(f"- **{s}.{obj}** ({kind}, {count:,} rows)")
-                        except (OperationalError, DatabaseError):
-                            lines.append(f"- **{s}.{obj}** ({kind})")
-                    lines.append("")
+                            except (OperationalError, DatabaseError):
+                                lines.append(f"- **{s}.{obj}** ({kind})")
+                        lines.append("")
                 return "\n".join(lines)
 
             # Inspect specific table/view — find which schema it's in

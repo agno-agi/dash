@@ -1,7 +1,6 @@
 """Save validated SQL queries to knowledge base."""
 
 import json
-import re
 
 from agno.knowledge import Knowledge
 from agno.knowledge.reader.text_reader import TextReader
@@ -40,23 +39,22 @@ def create_save_validated_query_tool(knowledge: Knowledge):
         if not query or not query.strip():
             return "Error: Query required."
 
-        sql = query.strip().lower()
-        if not sql.startswith("select") and not sql.startswith("with"):
+        clean = query.strip()
+        if clean.endswith(";"):
+            clean = clean[:-1].strip()
+        sql_lower = clean.lower()
+
+        if not sql_lower.startswith("select") and not sql_lower.startswith("with"):
             return "Error: Only SELECT queries can be saved."
 
-        if ";" in sql:
+        if ";" in clean:
             return "Error: Multi-statement queries not allowed."
-
-        dangerous = ["drop", "delete", "truncate", "insert", "update", "alter", "create"]
-        for kw in dangerous:
-            if re.search(rf"\b{kw}\b", sql):
-                return f"Error: Query contains dangerous keyword: {kw}"
 
         payload = {
             "type": "validated_query",
             "name": name.strip(),
             "question": question.strip(),
-            "query": query.strip(),
+            "query": clean,
             "summary": summary.strip() if summary else None,
             "tables_used": tables_used or [],
             "data_quality_notes": data_quality_notes.strip() if data_quality_notes else None,

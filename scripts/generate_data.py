@@ -15,20 +15,27 @@ Usage:
 import argparse
 import random
 from datetime import date, datetime, timedelta
+from typing import NamedTuple
 
 import pandas as pd
 from sqlalchemy import create_engine, text
 
 from db import db_url
 
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-PLANS = {
-    "starter": {"base_mrr": 29, "seats": (1, 3)},
-    "professional": {"base_mrr": 79, "seats": (3, 10)},
-    "business": {"base_mrr": 199, "seats": (10, 50)},
-    "enterprise": {"base_mrr": 499, "seats": (50, 200)},
+class PlanInfo(NamedTuple):
+    base_mrr: int
+    seats: tuple[int, int]
+
+
+PLANS: dict[str, PlanInfo] = {
+    "starter": PlanInfo(base_mrr=29, seats=(1, 3)),
+    "professional": PlanInfo(base_mrr=79, seats=(3, 10)),
+    "business": PlanInfo(base_mrr=199, seats=(10, 50)),
+    "enterprise": PlanInfo(base_mrr=499, seats=(50, 200)),
 }
 
 INDUSTRIES = ["technology", "healthcare", "finance", "retail", "education"]
@@ -227,10 +234,10 @@ def generate(seed: int = 42) -> dict[str, pd.DataFrame]:
             )
 
             plan_info = PLANS[plan]
-            seats = rng.randint(*plan_info["seats"])
-            mrr = plan_info["base_mrr"] * max(1, seats // plan_info["seats"][0])
+            seats = rng.randint(*plan_info.seats)
+            base_mrr = plan_info.base_mrr * max(1, seats // plan_info.seats[0])
             # Add some variance
-            mrr = round(mrr * rng.uniform(0.9, 1.1), 2)
+            mrr = round(base_mrr * rng.uniform(0.9, 1.1), 2)
 
             sub_id += 1
             billing = rng.choices(["monthly", "annual"], weights=[0.65, 0.35])[0]
@@ -404,9 +411,9 @@ def generate(seed: int = 42) -> dict[str, pd.DataFrame]:
                     continue
 
                 new_plan_info = PLANS[new_plan]
-                new_seats = rng.randint(*new_plan_info["seats"])
+                new_seats = rng.randint(*new_plan_info.seats)
                 new_mrr = round(
-                    new_plan_info["base_mrr"] * max(1, new_seats // new_plan_info["seats"][0]) * rng.uniform(0.9, 1.1),
+                    new_plan_info.base_mrr * max(1, new_seats // new_plan_info.seats[0]) * rng.uniform(0.9, 1.1),
                     2,
                 )
                 change_date = _random_date_in_month(rng, year, month)
@@ -501,10 +508,15 @@ def load_data(seed: int = 42, drop: bool = False) -> None:
     print(f"Generating data (seed={seed})...\n")
     tables = generate(seed=seed)
 
+    mode = "replace" if drop else "fail"
     total = 0
     for name, df in tables.items():
         print(f"  {name}: {len(df):,} rows", end=" ", flush=True)
-        df.to_sql(name, engine, if_exists="replace", index=False)
+        try:
+            df.to_sql(name, engine, if_exists=mode, index=False)
+        except ValueError:
+            print(f"\n\nError: Table '{name}' already exists. Use --drop to replace existing data.")
+            return
         print("OK")
         total += len(df)
 

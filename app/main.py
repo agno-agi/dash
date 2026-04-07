@@ -14,7 +14,8 @@ from pathlib import Path
 
 from agno.os import AgentOS
 
-from dash.agents import analyst, engineer
+from dash.agents.analyst import analyst
+from dash.agents.engineer import engineer
 from dash.settings import SLACK_SIGNING_SECRET, SLACK_TOKEN, dash_knowledge, dash_learnings
 from dash.team import dash
 from db import get_postgres_db
@@ -97,8 +98,11 @@ def reload_knowledge() -> dict[str, str]:
     """Reload knowledge files into the vector database."""
     from scripts.load_knowledge import load_knowledge
 
-    load_knowledge()
-    return {"status": "ok"}
+    try:
+        load_knowledge()
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 if __name__ == "__main__":

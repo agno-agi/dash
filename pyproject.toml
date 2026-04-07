@@ -43,7 +43,7 @@ plugins = ["pydantic.mypy"]
 exclude = [".venv*"]
 
 [[tool.mypy.overrides]]
-module = ["pgvector.*", "setuptools.*", "agno.*", "pandas.*", "httpx.*", "mcp.*", "slack_sdk.*"]
+module = ["pgvector.*", "setuptools.*", "agno.*", "pandas.*", "httpx.*", "mcp.*", "slack_sdk.*", "sqlalchemy.*"]
 ignore_missing_imports = true
 
 [tool.uv.pip]

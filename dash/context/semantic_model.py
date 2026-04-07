@@ -66,4 +66,4 @@ def format_semantic_model(model: dict[str, Any]) -> str:
                 lines.append(f"  - {note}")
         lines.append("")
 
-    return "\n".join(lines)
+    return "\n".join(lines).rstrip()
