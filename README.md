@@ -155,12 +155,14 @@ Slack gives Dash two capabilities: receiving messages from users in Slack thread
 
 See [docs/SLACK_CONNECT.md](docs/SLACK_CONNECT.md) for the full setup guide with the app manifest.
 
-### 1. Get a public URL
+### 1. Get your URL
 
-For local development, use [ngrok](https://ngrok.com/download/mac-os):
+**Production** (Railway or other host): use your deployed URL (e.g. `https://dash-production-xxxx.up.railway.app`).
+
+**Local development**: use [ngrok](https://ngrok.com/download/mac-os) to get a public URL:
 
 ```sh
-ngrok http 8000
+ngrok http 7777
 ```
 
 Copy the `https://` URL (e.g. `https://abc123.ngrok-free.app`).
@@ -178,7 +180,9 @@ Copy the `https://` URL (e.g. `https://abc123.ngrok-free.app`).
 2. Copy **Bot User OAuth Token** (`xoxb-...`) → `SLACK_TOKEN`
 3. Go to **Basic Information → App Credentials**, copy **Signing Secret** → `SLACK_SIGNING_SECRET`
 
-### 4. Add to `.env` and restart
+### 4. Add credentials and restart
+
+**Local development:**
 
 ```env
 SLACK_TOKEN="xoxb-your-bot-token"
@@ -189,11 +193,34 @@ SLACK_SIGNING_SECRET="your-signing-secret"
 docker compose up -d --build
 ```
 
+**Railway:**
+
+```sh
+# Add to .env.production, then sync and redeploy
+./scripts/railway_env.sh
+./scripts/railway_redeploy.sh
+```
+
+### 5. Verify Event Subscriptions
+
+Slack verifies your endpoint with a `challenge` request when the app is created. If your server wasn't running at that time, the verification fails and events won't be delivered.
+
+1. Go to [api.slack.com/apps](https://api.slack.com/apps) → your Dash app → **Event Subscriptions**
+2. If the Request URL shows "Your URL didn't respond", click **Retry**
+3. Confirm it shows **Verified** with a green checkmark
+4. Click **Save Changes**
+
+### 6. Test
+
+- **@mention** Dash in any channel it's been added to: `@Dash What's our MRR?`
+- **DM** the Dash bot directly
+- **Thread replies** continue the conversation with full context
+
 Thread timestamps map to session IDs, so each Slack thread gets its own conversation context.
 
 ## Data Model (SaaS Metrics)
 
-Synthetic B2B SaaS dataset (~500 customers, 2 years of data):
+Synthetic B2B SaaS dataset (~900 customers, 2 years of data):
 
 | Table | Description |
 |-------|-------------|
