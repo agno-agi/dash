@@ -151,49 +151,19 @@ Dockerfile, Docker Compose, one-command deployment. Scheduled tasks for proactiv
 
 ## Slack
 
-Slack gives Dash two capabilities: receiving messages from users in Slack threads, and proactively posting to channels.
+Dash can receive Slack DMs, @mentions, and thread replies, and can also post to channels proactively.
 
-See [docs/SLACK_CONNECT.md](docs/SLACK_CONNECT.md) for the full setup guide with the app manifest.
+Quick setup:
+1. Run Dash and give it a public URL (ngrok locally, or your Railway domain).
+2. Follow [docs/SLACK_CONNECT.md](docs/SLACK_CONNECT.md) to create and install the Slack app from the manifest.
+3. Set `SLACK_TOKEN` and `SLACK_SIGNING_SECRET`, then restart Dash.
+4. In Slack, confirm Event Subscriptions is verified and send a DM or `@mention` to test it.
 
-### 1. Get a public URL
-
-For local development, use [ngrok](https://ngrok.com/download/mac-os):
-
-```sh
-ngrok http 8000
-```
-
-Copy the `https://` URL (e.g. `https://abc123.ngrok-free.app`).
-
-### 2. Create app from manifest
-
-1. Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App → From a manifest**
-2. Select your workspace, switch to **JSON**
-3. Paste the manifest from [docs/SLACK_CONNECT.md](docs/SLACK_CONNECT.md) — replace `YOUR_URL_HERE` with your URL
-4. Click **Create**
-
-### 3. Install and get credentials
-
-1. **Install to Workspace** and authorize
-2. Copy **Bot User OAuth Token** (`xoxb-...`) → `SLACK_TOKEN`
-3. Go to **Basic Information → App Credentials**, copy **Signing Secret** → `SLACK_SIGNING_SECRET`
-
-### 4. Add to `.env` and restart
-
-```env
-SLACK_TOKEN="xoxb-your-bot-token"
-SLACK_SIGNING_SECRET="your-signing-secret"
-```
-
-```sh
-docker compose up -d --build
-```
-
-Thread timestamps map to session IDs, so each Slack thread gets its own conversation context.
+Each Slack thread maps to one Dash session. For the manifest, ngrok commands, Railway deployment, permissions, and troubleshooting, see [docs/SLACK_CONNECT.md](docs/SLACK_CONNECT.md).
 
 ## Data Model (SaaS Metrics)
 
-Synthetic B2B SaaS dataset (~500 customers, 2 years of data):
+Synthetic B2B SaaS dataset (~900 customers, 2 years of data):
 
 | Table | Description |
 |-------|-------------|

@@ -8,22 +8,26 @@ Each Slack thread maps to a session ID, so every thread gets its own conversatio
 
 ## Prerequisites
 
-- Dash running locally (`docker compose up -d --build`)
+- Dash running locally (`docker compose up -d --build`) or deployed to a public URL
 - A Slack workspace where you can install apps
 
 ## Step 1: Get a Public URL
 
 Slack needs a public URL to send events to Dash.
 
+**Production** — use your deployed URL (e.g., `https://dash-production-xxxx.up.railway.app`).
+
 **Local development** — use [ngrok](https://ngrok.com/download/mac-os):
 
 ```sh
+# Docker Compose (Quick Start)
 ngrok http 8000
+
+# Bare AgentOS (python -m app.main)
+ngrok http 7777
 ```
 
 Copy the `https://` URL (e.g., `https://abc123.ngrok-free.app`). This is your base URL.
-
-**Production** — use your deployed URL (e.g., `https://dash.example.com`).
 
 ## Step 2: Create a Slack App from Manifest
 
@@ -100,21 +104,39 @@ Copy the `https://` URL (e.g., `https://abc123.ngrok-free.app`). This is your ba
 3. Authorize the requested permissions
 4. Copy the **Bot User OAuth Token** (`xoxb-...`)
 
-## Step 4: Add Credentials to `.env`
+## Step 4: Add Credentials and Restart
 
 1. Copy the bot token from Step 3 → `SLACK_TOKEN`
 2. Go to **Basic Information** in the sidebar, under **App Credentials**, copy **Signing Secret** → `SLACK_SIGNING_SECRET`
+
+**Local development:**
 
 ```env
 SLACK_TOKEN="xoxb-your-bot-token"
 SLACK_SIGNING_SECRET="your-signing-secret"
 ```
 
-## Step 5: Restart Dash
-
 ```sh
 docker compose up -d --build
 ```
+
+**Railway:**
+
+Add both variables to `.env.production`, then sync and redeploy:
+
+```sh
+./scripts/railway_env.sh
+./scripts/railway_redeploy.sh
+```
+
+## Step 5: Verify Event Subscriptions
+
+Slack verifies your endpoint with a `challenge` request when the app is created. If Dash wasn't running at that time, the verification fails silently and events won't be delivered.
+
+1. Go to your Dash app settings → **Event Subscriptions**
+2. If the Request URL shows "Your URL didn't respond", click **Retry**
+3. Confirm it shows **Verified** with a green checkmark
+4. Click **Save Changes**
 
 ## Verify
 
