@@ -481,14 +481,21 @@ def generate(seed: int = 42) -> dict[str, pd.DataFrame]:
 # Load into database
 # ---------------------------------------------------------------------------
 def load_data(seed: int = 42, drop: bool = False) -> None:
-    """Generate and load SaaS metrics data into PostgreSQL."""
-    engine = create_engine(db_url)
+    """Generate and load SaaS metrics data into PostgreSQL.
+
+    Data is written to the ``public`` schema so it stays separate from
+    Agno framework tables (``ai`` schema) and agent-managed data (``dash`` schema).
+    """
+    engine = create_engine(
+        db_url,
+        connect_args={"options": "-c search_path=public"},
+    )
 
     if drop:
         print("Dropping existing tables...")
         with engine.connect() as conn:
             for table in ["usage_metrics", "support_tickets", "invoices", "plan_changes", "subscriptions", "customers"]:
-                conn.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE"))
+                conn.execute(text(f'DROP TABLE IF EXISTS public."{table}" CASCADE'))
             conn.commit()
 
     print(f"Generating data (seed={seed})...\n")
