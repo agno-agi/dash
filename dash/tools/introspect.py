@@ -126,7 +126,7 @@ def create_introspect_schema_tool(db_url: str, engine: Engine | None = None):
                             lines.append("| " + " | ".join(col_names) + " |")
                             lines.append("| " + " | ".join(["---"] * len(col_names)) + " |")
                             for row in rows:
-                                vals = [str(v)[:30] if v else "NULL" for v in row]
+                                vals = ["NULL" if v is None else str(v)[:30] for v in row]
                                 lines.append("| " + " | ".join(vals) + " |")
                         else:
                             lines.append("_No data_")
