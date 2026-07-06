@@ -222,6 +222,24 @@ Quick setup:
 
 Each Slack thread maps to one Dash session. For the manifest, ngrok commands, Railway deployment, permissions, and troubleshooting, see [docs/SLACK_CONNECT.md](docs/SLACK_CONNECT.md).
 
+## MCP
+
+Dash serves an MCP server at `/mcp` (enabled via `enable_mcp_server=True` in [`app/main.py`](app/main.py)), so any MCP client — Claude Code, Cursor, Claude Desktop, other agents — can query the warehouse in natural language through tools like `run_team("dash", ...)`, `run_agent`, and the read-only session tools.
+
+**Coding agents.** Register Dash with coding agents on your machine:
+
+```sh
+uvx agno connect
+```
+
+It auto-detects Claude Code, Claude Desktop, Codex, and Cursor, registers `http://localhost:8000/mcp`, and verifies the connection. The manual command for Claude Code is `claude mcp add --transport http dash http://localhost:8000/mcp`.
+
+**Chat apps.** Hosted apps (Claude, ChatGPT) can't reach `localhost` — deploy first, then add `https://<your-railway-domain>/mcp` as a custom connector (claude.ai: **Settings → Connectors → Add custom connector**).
+
+**Auth.** The same JWT layer that protects the REST API protects `/mcp`: open in dev, JWT-gated in production (mint a PAT / service-account token at os.agno.com). The verified token subject overrides any caller-supplied `user_id`, so runs are always attributed to the authenticated caller.
+
+**Smoke check.** With the compose stack up: `./scripts/mcp_check.sh` — it handshakes, lists the tools ("MCP OK — 8 tools"), and asks the Dash team a tool-free question.
+
 ## Data Model (SaaS Metrics)
 
 Synthetic B2B SaaS dataset (~900 customers, 2 years of data):
