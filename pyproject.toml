@@ -8,7 +8,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "Agno", email = "hello@agno.com" }]
 
 dependencies = [
-  "agno[os]",
+  "agno[os]==2.7.0a6",
   "aiohttp",
   "mcp",
   "openai",
