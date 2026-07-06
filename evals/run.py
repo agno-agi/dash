@@ -163,7 +163,7 @@ def run_accuracy_cases(
             )
             eval_result = eval_obj.run_with_output(output=response)
 
-            passed = eval_result is not None and eval_result.avg_score >= 7.0
+            passed = eval_result is not None and eval_result.avg_score is not None and eval_result.avg_score >= 7.0
             result: dict = {
                 "question": question,
                 "category": category,
