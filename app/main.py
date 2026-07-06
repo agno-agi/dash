@@ -85,6 +85,11 @@ agent_os = AgentOS(
     knowledge=[dash_knowledge, dash_learnings],
     interfaces=interfaces,
     config=str(Path(__file__).parent / "config.yaml"),
+    # Built-in MCP server (streamable HTTP at /mcp) — makes Dash callable by any
+    # MCP client (Claude Code, Cursor, other Apps): run_team("dash", ...) turns
+    # the warehouse into a natural-language tool for every other agent.
+    # Auth: the same JWT middleware that guards the REST API guards /mcp in prd.
+    enable_mcp_server=True,
 )
 
 app = agent_os.get_app()
