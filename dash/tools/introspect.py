@@ -9,11 +9,17 @@ from agno.tools import tool
 from agno.utils.log import logger
 from sqlalchemy import Engine, create_engine, inspect, text
 from sqlalchemy.exc import DatabaseError, OperationalError
+from sqlalchemy.sql import quoted_name
 
 from db.session import DASH_SCHEMA
 
 SCHEMAS = ["public", DASH_SCHEMA]
 MAX_SAMPLE_ROWS = 20
+
+
+def _safe_identifier(name: str) -> quoted_name:
+    """Wrap a schema or table name in quoted_name to prevent identifier injection."""
+    return quoted_name(name, quote=True)
 
 
 def create_introspect_schema_tool(db_url: str, engine: Engine | None = None):
@@ -63,7 +69,9 @@ def create_introspect_schema_tool(db_url: str, engine: Engine | None = None):
                         for obj in all_objects:
                             kind = "view" if obj in views else "table"
                             try:
-                                count = conn.execute(text(f'SELECT COUNT(*) FROM "{s}"."{obj}"')).scalar()
+                                # defense-in-depth: quote identifiers even though they come from the db
+                                stmt = text(f"SELECT COUNT(*) FROM {_safe_identifier(s)}.{_safe_identifier(obj)}")
+                                count = conn.execute(stmt).scalar()
                                 lines.append(f"- **{s}.{obj}** ({kind}, {count:,} rows)")
                             except (OperationalError, DatabaseError):
                                 lines.append(f"- **{s}.{obj}** ({kind})")
@@ -116,10 +124,11 @@ def create_introspect_schema_tool(db_url: str, engine: Engine | None = None):
                 lines.append("### Sample")
                 try:
                     with _engine.connect() as conn:
-                        result = conn.execute(
-                            text(f'SELECT * FROM "{found_schema}"."{table_name}" LIMIT :lim'),
-                            {"lim": sample_limit},
+                        # defense-in-depth: quote identifiers on top of the whitelist check above
+                        stmt = text(
+                            f"SELECT * FROM {_safe_identifier(found_schema)}.{_safe_identifier(table_name)} LIMIT :lim"
                         )
+                        result = conn.execute(stmt, {"lim": sample_limit})
                         rows = result.fetchall()
                         col_names = list(result.keys())
                         if rows:
